@@ -221,25 +221,26 @@ function ItemCard({ item, sajuContext, profile, analysisId, onDetailLoad, onMess
   const fetchingRef = useRef(false)
 
   const fetchDetail = useCallback(async () => {
-    if (item.detailLoading || fetchingRef.current) return
+    // detail이 이미 있으면 (mapExtendedToSummaryResult에서 미리 채워진 경우) 재호출 안 함
+    if (item.detailLoaded || item.detailLoading || fetchingRef.current) return
     fetchingRef.current = true
     onDetailLoad(item.id, '')
     try {
       const res = await fetch(`${API_BASE}/api/saju/precision/detail`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // profile이 null이어도 spread하면 {} — saju_context만으로 서버 동작
         body: JSON.stringify({ ...(profile ?? {}), item_id: item.id, saju_context: sajuContext }),
       })
       if (!res.ok) throw new Error(`${res.status}`)
       const data = await res.json()
       onDetailLoad(item.id, data.content)
-    } catch (e) {
-      onDetailLoad(item.id, null, true) // error flag
+    } catch {
+      // detail 별도 API 실패 시 — saju_context(synthesis)를 fallback으로 사용
+      onDetailLoad(item.id, sajuContext || '상세 분석 내용을 불러올 수 없습니다.')
     } finally {
       fetchingRef.current = false
     }
-  }, [item.detail, item.detailLoading, item.id, sajuContext, profile, onDetailLoad])
+  }, [item.detailLoaded, item.detailLoading, item.id, sajuContext, profile, onDetailLoad])
 
   const handleOpen = useCallback(async () => {
     const next = !open
@@ -366,6 +367,93 @@ function SectionCard({ section, sajuContext, profile, analysisId, onDetailLoad, 
   )
 }
 
+/* ─── Extended API 응답 → SummaryResult 매핑 ─── */
+const ITEM_TO_GROUP: Record<string, string> = {
+  pallja: 'structure', ilgan: 'structure', ohaeng: 'structure', eumyang: 'structure',
+  bigyeon: 'sipsung', sikshin: 'sipsung', jaesung: 'sipsung', gwansung: 'sipsung', insung: 'sipsung',
+  gyeok: 'gyeokguk', yongshin: 'gyeokguk', johoo: 'gyeokguk',
+  current_daewoon: 'daewoon', past_daewoon: 'daewoon', future_daewoon: 'daewoon', seun: 'daewoon',
+  career: 'domain', wealth: 'domain', love: 'domain', health: 'domain', family: 'domain',
+  shinsal: 'special', hapchung: 'special', gongmang: 'special',
+}
+const ITEM_LABELS: Record<string, string> = {
+  pallja: '사주팔자 원국 분석', ilgan: '일간 기질과 성향', ohaeng: '오행 균형 분석', eumyang: '음양 구조',
+  bigyeon: '비견·겁재 (자아·경쟁)', sikshin: '식신·상관 (표현·창의)', jaesung: '편재·정재 (재물·가치)',
+  gwansung: '편관·정관 (권위·규범)', insung: '편인·정인 (지혜·보호)',
+  gyeok: '월지 격국 판별', yongshin: '용신·기신·희신', johoo: '조후 분석',
+  current_daewoon: '현재 대운 상세 분석', past_daewoon: '과거 대운 총평',
+  future_daewoon: '향후 대운 예측', seun: '올해 세운 분석',
+  career: '직업·커리어운', wealth: '재물운', love: '연애·결혼운',
+  health: '건강운', family: '가족관계운',
+  shinsal: '신살 분석', hapchung: '합·충·형·파·해', gongmang: '공망 분석',
+}
+const GROUP_META: Record<string, { label: string; icon: string }> = {
+  structure: { label: '사주 기본 구조', icon: '🏛️' },
+  sipsung:   { label: '십성 분석', icon: '⭐' },
+  gyeokguk:  { label: '격국과 용신', icon: '🔑' },
+  daewoon:   { label: '대운과 세운', icon: '📅' },
+  domain:    { label: '인생 영역별 운세', icon: '🌟' },
+  special:   { label: '특수 구조 분석', icon: '🔬' },
+}
+const GROUP_ORDER = ['structure', 'sipsung', 'gyeokguk', 'daewoon', 'domain', 'special']
+
+function mapExtendedToSummaryResult(ext: any, profileName: string, selectedItems: string[]): SummaryResult {
+  const synthesis  = String(ext.synthesis  || ext.easy_explanation || '')
+  const daewoon    = String(ext.daewoon_summary || '')
+  const sewoon     = String(ext.sewoon_summary  || '')
+  const wuxing     = ext.wuxing_balance
+    ? Object.entries(ext.wuxing_balance as Record<string, number>)
+        .map(([k, v]) => `${k}:${v}`).join(' · ')
+    : ''
+
+  const getDetail = (id: string): string => {
+    if (id === 'current_daewoon' || id === 'past_daewoon' || id === 'future_daewoon') return daewoon || synthesis
+    if (id === 'seun') return sewoon || synthesis
+    if (id === 'ohaeng') return (wuxing ? `오행 분포 — ${wuxing}\n\n` : '') + synthesis
+    return synthesis
+  }
+
+  const getSummary = (id: string): string => {
+    const detail = getDetail(id)
+    return detail.slice(0, 100) + (detail.length > 100 ? '...' : '')
+  }
+
+  const groups: Record<string, string[]> = {}
+  for (const id of selectedItems) {
+    const g = ITEM_TO_GROUP[id]
+    if (g) { if (!groups[g]) groups[g] = []; groups[g].push(id) }
+  }
+
+  const sections: SummarySection[] = []
+  for (const gid of GROUP_ORDER) {
+    const items = groups[gid]
+    if (!items?.length) continue
+    sections.push({
+      group_id: gid,
+      group_label: GROUP_META[gid].label,
+      icon: GROUP_META[gid].icon,
+      items: items.map(id => ({
+        id,
+        label: ITEM_LABELS[id] || id,
+        summary: getSummary(id),
+        detail: getDetail(id),
+        detailLoading: false,
+        detailLoaded: true,
+        detailError: false,
+        qaMessages: [],
+        qaLoading: false,
+      })),
+    })
+  }
+
+  return {
+    name: profileName,
+    saju_summary: synthesis.slice(0, 200) || `${profileName}님의 사주를 분석했습니다.`,
+    saju_context: synthesis,
+    sections,
+  }
+}
+
 /* ─── 메인 화면 ─── */
 export default function PrecisionResultScreen() {
   const nav = useNavigate()
@@ -451,35 +539,50 @@ export default function PrecisionResultScreen() {
 
     async function fetchSummary() {
       try {
-        const res = await fetch(`${API_BASE}/api/saju/precision/summary`, {
+        // precision/summary 대신 실제 존재하는 analyze/extended 사용
+        const res = await fetch(`${API_BASE}/api/saju/analyze/extended`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...profile, selected_items: selectedItems }),
+          body: JSON.stringify({
+            ...profile,
+            analysis_level: 'expert',
+            section_ids: selectedItems,
+          }),
         })
         if (!res.ok) throw new Error(`API 오류: ${res.status}`)
-        const data: SummaryResult = await res.json()
+        const ext = await res.json()
+        if (ext.error) throw new Error(ext.error)
+
+        // 응답을 SummaryResult 형식으로 매핑 (detail 미리 포함)
+        const data = mapExtendedToSummaryResult(ext, profile.name, selectedItems)
         setResult(data)
 
         const initSections: SummarySection[] = data.sections.map(s => ({
           ...s,
-          items: s.items.map(i => ({ ...i, qaMessages: [], qaLoading: false }))
+          items: s.items.map(i => ({ ...i, qaMessages: [], qaLoading: false })),
         }))
         setSections(initSections)
 
-        // 자동 저장
-        const kakaoUser = await getUser()
-        const saveRes = await fetch(`${API_BASE}/api/saju/precision/save`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            device_id: getDeviceId(), user_id: kakaoUser?.id || null,
-            profile_name: data.name, saju_context: data.saju_context,
-            saju_summary: data.saju_summary, sections: initSections,
-            selected_items: selectedItems,
-          }),
-        })
-        const saveData = await saveRes.json()
-        if (saveData.id) { setAnalysisId(saveData.id); setSaved(true) }
+        // 자동 저장 — Supabase 직접 사용 (precision/save 엔드포인트 없음)
+        if (supabase) {
+          try {
+            const kakaoUser = await getUser()
+            const { data: saved } = await supabase
+              .from('precision_analyses')
+              .insert({
+                device_id: getDeviceId(),
+                user_id: kakaoUser?.id ?? null,
+                profile_name: data.name,
+                saju_context: data.saju_context,
+                saju_summary: data.saju_summary,
+                sections: initSections,
+                selected_items: selectedItems,
+              })
+              .select('id')
+              .single()
+            if (saved?.id) { setAnalysisId(saved.id); setSaved(true) }
+          } catch { /* 저장 실패는 무시 — 분석 결과는 표시 */ }
+        }
       } catch (e) {
         setError(`분석 오류: ${e instanceof Error ? e.message : String(e)}`)
       } finally {
@@ -517,10 +620,13 @@ export default function PrecisionResultScreen() {
       }))
       // Q&A 완료 시 sections 업데이트
       if (!isLoading && analysisId && supabase) {
-        supabase.from('precision_analyses')
-          .update({ sections: JSON.stringify(updated) })
-          .eq('id', analysisId)
-          .then(() => {}).catch(e => console.warn('[PrecisionResult]', e))
+        void (async () => {
+          try {
+            await supabase.from('precision_analyses')
+              .update({ sections: JSON.stringify(updated) })
+              .eq('id', analysisId)
+          } catch (e) { console.warn('[PrecisionResult]', e) }
+        })()
       }
       return updated
     })
