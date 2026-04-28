@@ -1,0 +1,9 @@
+{
+  "name": "sajuro-ai",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd app && npm install --legacy-peer-deps && npx vite build",
+    "dev": "cd app && npm install --legacy-peer-deps && npm run dev"
+  }
+}

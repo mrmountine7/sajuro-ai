@@ -1,0 +1,9 @@
+{
+  "buildCommand": "cd app && npm install --legacy-peer-deps && npx vite build",
+  "outputDirectory": "app/dist",
+  "installCommand": "echo skip-root-install",
+  "framework": null,
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
