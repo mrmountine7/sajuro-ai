@@ -197,49 +197,49 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
             <div key={i} style={{
               minWidth: 'calc(100vw - 80px)', maxWidth: 'calc(100vw - 80px)',
               scrollSnapAlign: 'center', flexShrink: 0,
-              borderRadius: 'var(--radius-xl)', padding: '20px',
+              borderRadius: 'var(--radius-xl)', padding: '14px 16px',
               background: s.gradient, border: `1px solid ${s.accent}22`,
               display: 'flex', flexDirection: 'column',
               overflow: 'hidden', boxSizing: 'border-box',
             }}>
-              {/* 배지 + 아이콘 */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--radius-full)', background: s.accent, color: '#fff', letterSpacing: '0.03em' }}>
-                  {s.badge}
-                </span>
-                <span style={{ fontSize: 30 }}>{s.icon}</span>
-              </div>
-              {/* 타이틀 */}
-              <div style={{ fontSize: 19, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8, whiteSpace: 'pre-line' }}>
-                {s.title}
-              </div>
-              {/* 설명 */}
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
-                {s.desc}
-              </div>
-              {/* 분석 미리보기 */}
-              {s.preview && (
-                <div style={{
-                  background: 'rgba(255,255,255,0.75)', borderRadius: 8,
-                  padding: '8px 12px', marginBottom: 10,
-                  borderLeft: `3px solid ${s.accent}`,
-                  fontSize: 11.5, color: 'var(--text-primary)', lineHeight: 1.6, fontStyle: 'italic',
-                }}>
-                  💡 {s.preview}
-                </div>
-              )}
-              {/* 키워드 태그 */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {s.tags.map(t => (
-                  <span key={t} style={{
-                    fontSize: 10.5, fontWeight: 600, padding: '3px 8px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'rgba(255,255,255,0.6)',
-                    color: s.accent, border: `1px solid ${s.accent}44`,
-                  }}>{t}</span>
-                ))}
-              </div>
+            {/* 배지 + 아이콘 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: s.accent, color: '#fff', letterSpacing: '0.03em' }}>
+                {s.badge}
+              </span>
+              <span style={{ fontSize: 24 }}>{s.icon}</span>
             </div>
+            {/* 타이틀 */}
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 6, whiteSpace: 'pre-line' }}>
+              {s.title}
+            </div>
+            {/* 설명 */}
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 10, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+              {s.desc}
+            </div>
+            {/* 분석 미리보기 */}
+            {s.preview && (
+              <div style={{
+                background: 'rgba(255,255,255,0.75)', borderRadius: 7,
+                padding: '6px 10px', marginBottom: 8,
+                borderLeft: `3px solid ${s.accent}`,
+                fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.5, fontStyle: 'italic',
+              }}>
+                💡 {s.preview}
+              </div>
+            )}
+            {/* 키워드 태그 */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {s.tags.map(t => (
+                <span key={t} style={{
+                  fontSize: 10, fontWeight: 600, padding: '2px 7px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'rgba(255,255,255,0.6)',
+                  color: s.accent, border: `1px solid ${s.accent}44`,
+                }}>{t}</span>
+              ))}
+            </div>
+          </div>
           ))}
         </div>
 
