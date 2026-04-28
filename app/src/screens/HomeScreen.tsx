@@ -35,7 +35,7 @@ const SLIDES = [
     title: '조선 명리학의 정수를\nAI가 읽어드립니다',
     desc: '적천수·자평진전·궁통보감 등 9대 고전을 학습한 AI가 당신의 사주 구조를 해석합니다.',
     tags: ['격국 분석', '용신 판단', '한난조습', '오행 구조'],
-    preview: '식신(食神: 타고난 재능과 표현력)이 강하게 작용하여 목표를 향한 인내심이 탁월합니다.',
+    preview: null,
   },
   {
     gradient: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
