@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, ChevronDown } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
 import { getDeviceId } from '@/lib/device-id'
+import { getUser } from '@/lib/auth'
 import { LANGUAGES, getLang, setLang } from '@/lib/i18n'
 import { useProfileGuard } from '@/lib/profile-guard-context'
 
@@ -351,19 +352,91 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
 
 /* ─── 개인화 홈 뷰 ─── */
 interface Profile { id: string; name: string; birth_year: number; is_primary: boolean }
+interface RecentItem { icon: string; title: string; meta: string }
 
-function PersonalizedHome({ primaryName, nav }: { primaryName: string; nav: ReturnType<typeof useNavigate> }) {
+function todayLabel() {
+  const d = new Date()
+  const days = ['일', '월', '화', '수', '목', '금', '토']
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`
+}
+
+function PersonalizedHome({ primaryName, primaryId, nav }: {
+  primaryName: string
+  primaryId: string
+  nav: ReturnType<typeof useNavigate>
+}) {
   const { safeNav } = useProfileGuard()
-  const recentItems = [
-    { icon: '💰', title: `${primaryName} · 금전운`,   meta: '재물 흐름 분석' },
-    { icon: '📈', title: `${primaryName} · 운세 흐름`, meta: '대운·세운·월운' },
-  ]
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([])
+
+  const fetchRecent = useCallback(async () => {
+    if (!supabase) return
+    try {
+      const kakaoUser = await getUser()
+      const deviceId = getDeviceId()
+
+      const applyFilter = (qb: any) =>
+        kakaoUser?.id
+          ? qb.or(`device_id.eq.${deviceId},user_id.eq.${kakaoUser.id}`)
+          : qb.eq('device_id', deviceId)
+
+      const all: (RecentItem & { ts: number })[] = []
+
+      // 정밀분석 / 결혼궁합
+      const { data: pData } = await applyFilter(
+        supabase.from('precision_analyses')
+          .select('profile_name,created_at')
+          .order('created_at', { ascending: false })
+          .limit(3)
+      )
+      for (const r of (pData ?? []) as any[]) {
+        const n = r.profile_name || ''
+        if (n.includes('결혼궁합'))
+          all.push({ icon: '💍', title: n, meta: '결혼 궁합 분석', ts: new Date(r.created_at).getTime() })
+        else if (n.includes('궁합'))
+          all.push({ icon: '💑', title: n, meta: '궁합 분석', ts: new Date(r.created_at).getTime() })
+        else
+          all.push({ icon: '🔮', title: `${n} · 정밀분석`, meta: '사주 정밀분석', ts: new Date(r.created_at).getTime() })
+      }
+
+      // 평생운세
+      const { data: lData } = await applyFilter(
+        supabase.from('lifetime_readings')
+          .select('profile_name,created_at')
+          .order('created_at', { ascending: false })
+          .limit(2)
+      )
+      for (const r of (lData ?? []) as any[])
+        all.push({ icon: '🌊', title: `${r.profile_name || ''} · 평생운세`, meta: '대운·세운 흐름', ts: new Date(r.created_at).getTime() })
+
+      // 꿈해몽
+      try {
+        const { data: dData } = await applyFilter(
+          supabase.from('dream_records')
+            .select('overall_sentiment,created_at')
+            .order('created_at', { ascending: false })
+            .limit(1)
+        )
+        for (const r of (dData ?? []) as any[])
+          all.push({ icon: '💭', title: '꿈해몽', meta: r.overall_sentiment || '꿈 해석', ts: new Date(r.created_at).getTime() })
+      } catch { /* 테이블 없으면 무시 */ }
+
+      all.sort((a, b) => b.ts - a.ts)
+      setRecentItems(all.slice(0, 3).map(({ ts: _ts, ...rest }) => rest))
+    } catch (e) {
+      console.warn('[PersonalizedHome] recent fetch', e)
+    }
+  }, [])
+
+  useEffect(() => { fetchRecent() }, [fetchRecent])
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
 
-      {/* 인사말 */}
-      <div style={{ padding: '8px 20px 16px' }}>
+      {/* ── 인사말 ── */}
+      <div style={{ padding: '8px 20px 20px' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 500 }}>
+          {todayLabel()}
+        </div>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4 }}>
           {primaryName}님, 오늘의 흐름을<br />살펴볼까요?
         </div>
@@ -372,50 +445,43 @@ function PersonalizedHome({ primaryName, nav }: { primaryName: string; nav: Retu
         </div>
       </div>
 
-      {/* 오늘의 흐름 카드 — TODO: API 연동 */}
-      <div className="s-flow-card" style={{ margin: '0 20px 20px' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-accent)', marginBottom: 8 }}>오늘의 한 줄 흐름</div>
-        <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-          오늘은 판단보다 관찰이 유리한 날입니다.<br />작은 신호를 놓치지 마세요.
-        </p>
-        <button onClick={() => safeNav('/analysis')} style={{ marginTop: 12, padding: '8px 16px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, background: 'var(--bg-accent)', color: '#1F2937' }}>
-          오늘 운세 보기
-        </button>
-      </div>
-
-      {/* 빠른 분석 */}
-      <div style={{ padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      {/* ── 빠른 분석 ── */}
+      <div style={{ padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div className="s-section-title">지금 많이 보는 분석</div>
         <button onClick={() => safeNav('/analysis')} style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}>전체 보기 ›</button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '0 20px', marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 20px', marginBottom: 24 }}>
         {QUICK_MENUS.map(c => (
           <button key={c.title} className="s-card" onClick={() => safeNav(c.route)} style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 28, marginBottom: 10 }}>{c.icon}</div>
+            <div style={{ fontSize: 22, marginBottom: 8 }}>{c.icon}</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{c.title}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>{c.desc}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.4 }}>{c.desc}</div>
           </button>
         ))}
       </div>
 
-      {/* 최근 분석 — TODO: DB 이력으로 교체 */}
-      <div style={{ padding: '0 20px', marginBottom: 14 }}><div className="s-section-title">최근 본 분석</div></div>
-      {recentItems.map(item => (
-        <button key={item.title} onClick={() => safeNav('/result/sample')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', width: '100%', textAlign: 'left' }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{item.icon}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>{item.title}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{item.meta}</div>
-          </div>
-          <span style={{ color: 'var(--text-disabled)' }}>›</span>
-        </button>
-      ))}
+      {/* ── 최근 본 분석 (실제 DB) ── */}
+      {recentItems.length > 0 && (
+        <>
+          <div style={{ padding: '0 20px', marginBottom: 10 }}><div className="s-section-title">최근 본 분석</div></div>
+          {recentItems.map((item, i) => (
+            <button key={i} onClick={() => safeNav('/records')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', width: '100%', textAlign: 'left' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{item.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{item.meta}</div>
+              </div>
+              <span style={{ color: 'var(--text-disabled)', flexShrink: 0 }}>›</span>
+            </button>
+          ))}
+        </>
+      )}
 
-      {/* 내 사주 바로보기 */}
-      <div style={{ padding: '20px 20px 14px' }}><div className="s-section-title">내 사주 바로보기</div></div>
+      {/* ── 내 사주 바로보기 ── */}
+      <div style={{ padding: '20px 20px 12px' }}><div className="s-section-title">내 사주 바로보기</div></div>
       <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 20 }}>
         {[
-          { icon: '📋', label: '내 사주',     p: '/detail/1' },
+          { icon: '📋', label: '내 사주',     p: `/detail/${primaryId}` },
           { icon: '⭐', label: '즐겨찾기',    p: '/vault' },
           { icon: '➕', label: '새 사주 추가', p: '/add-profile' },
         ].map(s => (
@@ -434,9 +500,10 @@ export default function HomeScreen({ forceOnboarding = false }: { forceOnboardin
   const nav = useNavigate()
   const [loading, setLoading] = useState(!forceOnboarding)
   const [primaryName, setPrimaryName] = useState<string | null>(null)
+  const [primaryId, setPrimaryId] = useState<string>('')
 
   useEffect(() => {
-    if (forceOnboarding) return   // /onboarding 라우트: 항상 온보딩 표시
+    if (forceOnboarding) return
     const check = async () => {
       try {
         if (!supabase) { setLoading(false); return }
@@ -451,6 +518,7 @@ export default function HomeScreen({ forceOnboarding = false }: { forceOnboardin
         if (data && data.length > 0) {
           const primary = (data as Profile[]).find(p => p.is_primary) ?? data[0] as Profile
           setPrimaryName(primary.name)
+          setPrimaryId(primary.id)
         }
       } catch {
         // 오류 시 온보딩 표시
@@ -481,7 +549,7 @@ export default function HomeScreen({ forceOnboarding = false }: { forceOnboardin
         titleElement={<span style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-accent)' }}>사주로</span>}
         rightActions={['kakao', 'search', 'bell']}
       />
-      <PersonalizedHome primaryName={primaryName} nav={nav} />
+      <PersonalizedHome primaryName={primaryName} primaryId={primaryId} nav={nav} />
     </div>
   )
 }
