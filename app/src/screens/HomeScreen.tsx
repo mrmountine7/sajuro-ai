@@ -197,33 +197,32 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
             <div key={i} style={{
               minWidth: 'calc(100vw - 80px)', maxWidth: 'calc(100vw - 80px)',
               scrollSnapAlign: 'center', flexShrink: 0,
-              borderRadius: 'var(--radius-xl)', padding: '14px 16px',
+              borderRadius: 'var(--radius-xl)', padding: '12px 14px',
               background: s.gradient, border: `1px solid ${s.accent}22`,
               display: 'flex', flexDirection: 'column',
               overflow: 'hidden', boxSizing: 'border-box',
             }}>
-            {/* 배지 + 아이콘 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            {/* 배지 */}
+            <div style={{ marginBottom: 6 }}>
               <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: s.accent, color: '#fff', letterSpacing: '0.03em' }}>
                 {s.badge}
               </span>
-              <span style={{ fontSize: 24 }}>{s.icon}</span>
             </div>
             {/* 타이틀 */}
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 6, whiteSpace: 'pre-line' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: 5, whiteSpace: 'pre-line' }}>
               {s.title}
             </div>
             {/* 설명 */}
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 10, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 8, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
               {s.desc}
             </div>
             {/* 분석 미리보기 */}
             {s.preview && (
               <div style={{
-                background: 'rgba(255,255,255,0.75)', borderRadius: 7,
-                padding: '6px 10px', marginBottom: 8,
+                background: 'rgba(255,255,255,0.75)', borderRadius: 6,
+                padding: '5px 10px', marginBottom: 7,
                 borderLeft: `3px solid ${s.accent}`,
-                fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.5, fontStyle: 'italic',
+                fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.45, fontStyle: 'italic',
               }}>
                 💡 {s.preview}
               </div>
