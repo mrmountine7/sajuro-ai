@@ -1,0 +1,3 @@
+﻿title: 일간/오행 구조 궁합
+details count: 22
+first detail: [일간/오행 구조를 궁합에서 보는 이유]

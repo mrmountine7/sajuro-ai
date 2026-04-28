@@ -1,0 +1,122 @@
+[
+  {
+    "name": "KimEunwoo",
+    "birth": "1970-02-19 03:10",
+    "hannan": "난",
+    "josup": "조",
+    "day_master": "庚(경)",
+    "pillars": [
+      {
+        "name": "년주",
+        "gan": "庚",
+        "zhi": "戌",
+        "gan_ko": "경",
+        "zhi_ko": "술",
+        "gan_wx": "금",
+        "zhi_wx": "토",
+        "sipsin": "비견",
+        "zhi_sipsin": "편인"
+      },
+      {
+        "name": "월주",
+        "gan": "戊",
+        "zhi": "寅",
+        "gan_ko": "무",
+        "zhi_ko": "인",
+        "gan_wx": "토",
+        "zhi_wx": "목",
+        "sipsin": "편인",
+        "zhi_sipsin": "편재"
+      },
+      {
+        "name": "일주",
+        "gan": "庚",
+        "zhi": "午",
+        "gan_ko": "경",
+        "zhi_ko": "오",
+        "gan_wx": "금",
+        "zhi_wx": "화",
+        "sipsin": "일원",
+        "zhi_sipsin": "정관"
+      },
+      {
+        "name": "시주",
+        "gan": "戊",
+        "zhi": "寅",
+        "gan_ko": "무",
+        "zhi_ko": "인",
+        "gan_wx": "토",
+        "zhi_wx": "목",
+        "sipsin": "편인",
+        "zhi_sipsin": "편재"
+      }
+    ],
+    "wuxing": {
+      "목": 2,
+      "화": 1,
+      "토": 3,
+      "금": 2,
+      "수": 0
+    }
+  },
+  {
+    "name": "Jjong",
+    "birth": "1973-02-09 11:00",
+    "hannan": "난",
+    "josup": "습",
+    "day_master": "丙(병)",
+    "pillars": [
+      {
+        "name": "년주",
+        "gan": "癸",
+        "zhi": "丑",
+        "gan_ko": "계",
+        "zhi_ko": "축",
+        "gan_wx": "수",
+        "zhi_wx": "토",
+        "sipsin": "정관",
+        "zhi_sipsin": "상관"
+      },
+      {
+        "name": "월주",
+        "gan": "甲",
+        "zhi": "寅",
+        "gan_ko": "갑",
+        "zhi_ko": "인",
+        "gan_wx": "목",
+        "zhi_wx": "목",
+        "sipsin": "편인",
+        "zhi_sipsin": "편인"
+      },
+      {
+        "name": "일주",
+        "gan": "丙",
+        "zhi": "子",
+        "gan_ko": "병",
+        "zhi_ko": "자",
+        "gan_wx": "화",
+        "zhi_wx": "수",
+        "sipsin": "일원",
+        "zhi_sipsin": "정관"
+      },
+      {
+        "name": "시주",
+        "gan": "甲",
+        "zhi": "午",
+        "gan_ko": "갑",
+        "zhi_ko": "오",
+        "gan_wx": "목",
+        "zhi_wx": "화",
+        "sipsin": "편인",
+        "zhi_sipsin": "겁재"
+      }
+    ],
+    "wuxing": {
+      "목": 3,
+      "화": 2,
+      "토": 1,
+      "금": 0,
+      "수": 2
+    }
+  }
+]

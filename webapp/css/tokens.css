@@ -1,0 +1,180 @@
+/* sajuro.ai Design Token System */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+:root {
+  /* ===== Primitive Colors ===== */
+  --white: #FFFFFF;
+  --black: #111111;
+  --gray-0: #FFFFFF;
+  --gray-25: #F8F8F8;
+  --gray-50: #F3F4F6;
+  --gray-100: #EDEFF3;
+  --gray-200: #D8DCE3;
+  --gray-300: #C1C7D0;
+  --gray-400: #9AA3AF;
+  --gray-500: #6B7280;
+  --gray-600: #4B5563;
+  --gray-700: #374151;
+  --gray-800: #1F2937;
+  --gray-900: #111827;
+
+  /* Dark Palette */
+  --dark-900: #0E0B0C;
+  --dark-850: #161112;
+  --dark-800: #1C1416;
+  --dark-750: #24181B;
+  --dark-700: #2F2024;
+  --dark-600: #4A343A;
+  --dark-500: #70535B;
+  --dark-400: #9B7C83;
+  --dark-300: #C9B0B6;
+
+  /* Brand */
+  --brand-gold-300: #F8D34B;
+  --brand-gold-400: #F2C316;
+  --brand-gold-500: #D9A90A;
+  --brand-rose-300: #E7B0B0;
+  --brand-rose-400: #D38D8D;
+  --brand-ink-500: #22181B;
+  --brand-blue-400: #4F86F7;
+  --brand-blue-500: #3567E8;
+
+  /* Status */
+  --status-free: #7C5CFF;
+  --status-free-now: #00D98B;
+  --status-premium: #F2C316;
+  --status-coming-soon: #8B95A1;
+  --status-error: #EF4444;
+  --status-warning: #F59E0B;
+  --status-success: #10B981;
+
+  /* Five Elements */
+  --element-wood: #3B82F6;
+  --element-fire: #FF5A5F;
+  --element-earth: #F5C518;
+  --element-metal: #E5E7EB;
+  --element-water: #111827;
+
+  /* ===== Typography ===== */
+  --font-base: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ===== Spacing ===== */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-56: 56px;
+  --space-64: 64px;
+
+  /* ===== Radius ===== */
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-24: 24px;
+  --radius-28: 28px;
+  --radius-full: 999px;
+
+  /* ===== Elevation ===== */
+  --shadow-sm: 0 2px 8px rgba(17,24,39,0.06);
+  --shadow-md: 0 6px 16px rgba(17,24,39,0.10);
+  --shadow-lg: 0 10px 24px rgba(17,24,39,0.14);
+}
+
+/* ===== Light Theme Semantic Tokens ===== */
+.theme-light {
+  --bg-app: #F3F4F6;
+  --bg-app-secondary: #EDEFF3;
+  --bg-surface: #FFFFFF;
+  --bg-surface-secondary: #F8F8F8;
+  --bg-surface-tertiary: #F3F4F6;
+  --bg-inverse: #111827;
+  --bg-accent: #F2C316;
+  --bg-accent-secondary: #4F86F7;
+
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-tertiary: #6B7280;
+  --text-inverse: #FFFFFF;
+  --text-accent: #D9A90A;
+  --text-link: #3567E8;
+  --text-disabled: #9AA3AF;
+
+  --border-primary: #E5E7EB;
+  --border-secondary: #D8DCE3;
+  --border-strong: #C1C7D0;
+  --border-accent: #F2C316;
+
+  --icon-primary: #111827;
+  --icon-secondary: #6B7280;
+  --icon-accent: #F2C316;
+
+  --status-free-bg: #F1ECFF;
+  --status-free-fg: #6D44FF;
+  --status-free-now-bg: #E8FFF6;
+  --status-free-now-fg: #00B874;
+  --status-premium-bg: #FFF8DD;
+  --status-premium-fg: #C58D00;
+  --status-coming-soon-bg: #F3F4F6;
+  --status-coming-soon-fg: #6B7280;
+
+  --card-shadow: var(--shadow-sm);
+}
+
+/* ===== Dark Theme Semantic Tokens ===== */
+.theme-dark {
+  --bg-app: #0E0B0C;
+  --bg-app-secondary: #161112;
+  --bg-surface: #1C1416;
+  --bg-surface-secondary: #24181B;
+  --bg-surface-tertiary: #2F2024;
+  --bg-inverse: #FFFFFF;
+  --bg-accent: #F2C316;
+  --bg-accent-secondary: #4F86F7;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #C9B0B6;
+  --text-tertiary: #9B7C83;
+  --text-inverse: #111827;
+  --text-accent: #F8D34B;
+  --text-link: #6EA8FF;
+  --text-disabled: #70535B;
+
+  --border-primary: #4A343A;
+  --border-secondary: #2F2024;
+  --border-strong: #70535B;
+  --border-accent: #F8D34B;
+
+  --icon-primary: #FFFFFF;
+  --icon-secondary: #C9B0B6;
+  --icon-accent: #F8D34B;
+
+  --status-free-bg: #251B43;
+  --status-free-fg: #B39CFF;
+  --status-free-now-bg: #083D2A;
+  --status-free-now-fg: #63F0B8;
+  --status-premium-bg: #4A3710;
+  --status-premium-fg: #FFD45F;
+  --status-coming-soon-bg: #332A2D;
+  --status-coming-soon-fg: #C9B0B6;
+
+  --card-shadow: none;
+}

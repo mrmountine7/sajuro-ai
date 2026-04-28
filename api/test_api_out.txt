@@ -1,0 +1,6 @@
+﻿Stage 1: 한난조습·조후 체크 = 70pts  tags=['습도 보완']
+Stage 2: 일간/오행 구조 궁합 = 85pts  tags=['일간 상극', '쌍방향 보완', '오행 완비']
+Stage 3: 일지·지지 합충 (속궁합) = 60pts  tags=['일지 충']
+Stage 4: 지장간·암합 (무의식·성욕 코드) = 86pts  tags=['은밀한 끌림', '암합']
+Stage 5: 대운 흐름 시너지 분석 = 74pts  tags=['쌍방 호운']
+Overall=75  Outer=81  Inner=72

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+app/node_modules/
+
+# Build outputs
+app/dist/
+dist/
+
+# Environment files (secrets)
+.env
+app/.env
+api/.env
+*.env.local
+*.env.production
+
+# Vercel
+app/.vercel/
+.vercel/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+api/__pycache__/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temp
+*.tmp
+*.temp

@@ -1,0 +1,11 @@
+{
+  "name": "사주로 - sajuro.ai",
+  "short_name": "사주로",
+  "description": "AI 사주 분석 프리미엄 앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0E0B0C",
+  "theme_color": "#F2C316",
+  "orientation": "portrait",
+  "lang": "ko"
+}

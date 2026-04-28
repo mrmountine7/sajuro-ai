@@ -1,0 +1,54 @@
+{
+  "김은우_현재대운": {
+    "order": 6,
+    "gan": "甲",
+    "zhi": "申",
+    "gan_ko": "갑",
+    "zhi_ko": "신",
+    "gan_wuxing": "목",
+    "zhi_wuxing": "금",
+    "gan_sipsin": "편재",
+    "zhi_sipsin": "비견",
+    "age_start": 54,
+    "age_end": 63,
+    "year_start": 2023,
+    "year_end": 2032,
+    "is_current": true
+  },
+  "쫑_현재대운": {
+    "order": 6,
+    "gan": "庚",
+    "zhi": "申",
+    "gan_ko": "경",
+    "zhi_ko": "신",
+    "gan_wuxing": "금",
+    "zhi_wuxing": "금",
+    "gan_sipsin": "편재",
+    "zhi_sipsin": "편재",
+    "age_start": 54,
+    "age_end": 63,
+    "year_start": 2026,
+    "year_end": 2035,
+    "is_current": true
+  },
+  "stage5": {
+    "title": "대운 흐름 시너지 분석",
+    "score": 74,
+    "tags": [
+      "쌍방 호운"
+    ],
+    "details": [
+      "김은우 현재 대운: 갑신(편재/비견) [54~63세 (2023~2032)]",
+      "쫑 현재 대운: 경신(편재/편재) [54~63세 (2026~2035)]",
+      "둘 다 현재 좋은 대운 흐름 → 함께 성장하고 발전하는 시너지",
+      "",
+      "— 향후 대운 시너지 전망 —",
+      "최고 시너지 시기: 2033~2035년 (천간합, 쌍방호운)",
+      "  김은우 대운 을유 × 쫑 대운 경신",
+      "차선 시너지 시기: 2053~2055년 (천간합, 쌍방호운)"
+    ]
+  },
+  "overall": 75,
+  "outer": 81,
+  "inner": 72
+}

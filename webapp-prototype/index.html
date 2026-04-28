@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#F3F4F6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>사주로 - sajuro.ai</title>
+  <link rel="stylesheet" href="css/tokens.css?v=3">
+  <link rel="stylesheet" href="css/components.css?v=3">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    .screen-body { scroll-behavior: smooth; }
+  </style>
+</head>
+<body>
+
+<div class="app-shell" id="app">
+
+  <!-- ============================================= -->
+  <!-- SCREEN 1: HOME (홈) - Light -->
+  <!-- ============================================= -->
+  <div class="screen theme-light active" id="screen-home" data-tab="home">
+    <div class="header">
+      <div class="header-left">
+        <span style="font-size:20px;font-weight:800;color:var(--text-accent);">사주로</span>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" aria-label="검색">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <button class="header-btn" aria-label="알림">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="greeting">
+        <div class="g-name">은우님, 오늘의 흐름을<br>살펴볼까요?</div>
+        <div class="g-sub">지금 가장 궁금한 운세를 빠르게 확인해보세요.</div>
+      </div>
+
+      <div class="flow-card">
+        <div class="flow-label">오늘의 한 줄 흐름</div>
+        <div class="flow-text">오늘은 판단보다 관찰이 유리한 날입니다.<br>작은 신호를 놓치지 마세요.</div>
+        <button class="flow-btn" onclick="navigateTo('screen-analysis')">오늘 운세 보기</button>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">지금 많이 보는 분석</div>
+          <button class="section-action" onclick="navigateTo('screen-analysis')">전체 보기 ›</button>
+        </div>
+      </div>
+
+      <div class="recommend-grid">
+        <div class="recommend-card" onclick="navigateTo('screen-result')">
+          <div class="rc-icon">🔮</div>
+          <div class="rc-title">내 사주 정밀분석</div>
+          <div class="rc-desc">타고난 기질과 인생 구조를 깊게 해석</div>
+        </div>
+        <div class="recommend-card" onclick="navigateTo('screen-analysis')">
+          <div class="rc-icon">📈</div>
+          <div class="rc-title">운세 흐름</div>
+          <div class="rc-desc">대운·세운·월운의 변화 포인트 확인</div>
+        </div>
+        <div class="recommend-card" onclick="navigateTo('screen-result')">
+          <div class="rc-icon">💰</div>
+          <div class="rc-title">금전운</div>
+          <div class="rc-desc">재물 흐름과 지출 위험을 분석</div>
+        </div>
+        <div class="recommend-card" onclick="navigateTo('screen-analysis')">
+          <div class="rc-icon">💕</div>
+          <div class="rc-title">연인궁합</div>
+          <div class="rc-desc">끌림, 갈등, 감정 리듬을 확인</div>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:24px;">
+        <div class="section-header">
+          <div class="section-title">최근 본 분석</div>
+        </div>
+      </div>
+
+      <div class="recent-item" onclick="navigateTo('screen-result')">
+        <div class="ri-icon">💰</div>
+        <div class="ri-body">
+          <div class="ri-title">김은우 · 금전운</div>
+          <div class="ri-meta">2026.04.01 · 지출 통제가 핵심 포인트</div>
+        </div>
+        <div class="ri-arrow">›</div>
+      </div>
+      <div class="recent-item" onclick="navigateTo('screen-result')">
+        <div class="ri-icon">💕</div>
+        <div class="ri-body">
+          <div class="ri-title">김은우 × 쫑 · 연인궁합</div>
+          <div class="ri-meta">2026.04.02 · 감정 연결은 강하지만 리듬 차이 주의</div>
+        </div>
+        <div class="ri-arrow">›</div>
+      </div>
+      <div class="recent-item" onclick="navigateTo('screen-detail')">
+        <div class="ri-icon">🎍</div>
+        <div class="ri-body">
+          <div class="ri-title">김은우 · 2026 신년운세</div>
+          <div class="ri-meta">2026.04.02 · 올해는 정리와 선택의 균형</div>
+        </div>
+        <div class="ri-arrow">›</div>
+      </div>
+
+      <div class="section" style="margin-top:24px;">
+        <div class="section-header">
+          <div class="section-title">내 명식 바로보기</div>
+        </div>
+      </div>
+
+      <div class="shortcut-row">
+        <div class="shortcut-card" onclick="navigateTo('screen-detail')">
+          <div class="sc-icon">📋</div>
+          <div class="sc-title">내 명식</div>
+        </div>
+        <div class="shortcut-card" onclick="navigateTo('screen-vault')">
+          <div class="sc-icon">⭐</div>
+          <div class="sc-title">즐겨찾기</div>
+        </div>
+        <div class="shortcut-card" onclick="navigateTo('screen-vault')">
+          <div class="sc-icon">➕</div>
+          <div class="sc-title">새 명식 추가</div>
+        </div>
+      </div>
+
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- SCREEN 2: ANALYSIS HUB (분석) - Light -->
+  <!-- ============================================= -->
+  <div class="screen theme-light" id="screen-analysis" data-tab="analysis">
+    <div class="header">
+      <div class="header-left">
+        <span style="font-size:18px;font-weight:700;color:var(--text-primary);">분석 메뉴</span>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" aria-label="검색">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="page-title">보고 싶은 분석을 선택해보세요.</div>
+
+      <div class="chip-row" id="analysis-chips">
+        <button class="chip active" data-filter="all">전체</button>
+        <button class="chip" data-filter="saju">내 사주</button>
+        <button class="chip" data-filter="theme">테마운</button>
+        <button class="chip" data-filter="match">궁합·관계</button>
+        <button class="chip" data-filter="life">생활·부가</button>
+        <button class="chip" data-filter="image">이미지 분석</button>
+      </div>
+
+      <div class="analysis-grid" id="analysis-grid">
+        <!-- Cards injected by JS -->
+      </div>
+
+      <div class="section" style="margin-top:28px;">
+        <div class="section-header">
+          <div class="section-title">이 순서로 보면 더 좋아요</div>
+        </div>
+      </div>
+
+      <div class="h-scroll">
+        <div class="h-card">
+          <div class="h-icon">1️⃣</div>
+          <div class="h-title">정밀분석</div>
+          <div class="h-desc">기질과 구조 파악</div>
+        </div>
+        <div class="h-card">
+          <div class="h-icon">2️⃣</div>
+          <div class="h-title">운세 흐름</div>
+          <div class="h-desc">시기별 변화 확인</div>
+        </div>
+        <div class="h-card">
+          <div class="h-icon">3️⃣</div>
+          <div class="h-title">금전운</div>
+          <div class="h-desc">재물 흐름 분석</div>
+        </div>
+        <div class="h-card">
+          <div class="h-icon">4️⃣</div>
+          <div class="h-title">애정운</div>
+          <div class="h-desc">감정 리듬 확인</div>
+        </div>
+      </div>
+
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- SCREEN 3: VAULT (보관소) - Light -->
+  <!-- ============================================= -->
+  <div class="screen theme-light" id="screen-vault" data-tab="vault">
+    <div class="header">
+      <div class="header-left">
+        <span style="font-size:18px;font-weight:700;color:var(--text-primary);">명식 보관소</span>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" aria-label="추가">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="header-btn" aria-label="검색">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="profile-card">
+        <div class="profile-info">
+          <div class="avatar">은</div>
+          <div>
+            <div class="profile-name">김은우</div>
+            <div class="profile-meta">1970/01/14 03:10 (음) · Seoul</div>
+            <span class="profile-tag">기본 명식</span>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="profile-action-btn" onclick="navigateTo('screen-result')">정밀분석</button>
+          <button class="profile-action-btn" onclick="navigateTo('screen-result')">운세 흐름</button>
+          <button class="profile-action-btn" onclick="navigateTo('screen-result')">금전운</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">즐겨찾기</div>
+        </div>
+      </div>
+
+      <div class="favorites-row">
+        <div class="fav-item" onclick="navigateTo('screen-detail')">
+          <div class="fav-avatar">은</div>
+          <div class="fav-name">은우</div>
+        </div>
+        <div class="fav-item" onclick="navigateTo('screen-detail')">
+          <div class="fav-avatar">쫑</div>
+          <div class="fav-name">쫑</div>
+        </div>
+        <div class="fav-item" onclick="navigateTo('screen-detail')">
+          <div class="fav-avatar">누</div>
+          <div class="fav-name">누나</div>
+        </div>
+        <div class="fav-item">
+          <div class="fav-avatar" style="border-style:dashed;font-size:18px;">+</div>
+          <div class="fav-name">추가</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">저장된 명식</div>
+          <button class="section-action">새 명식 추가</button>
+        </div>
+      </div>
+
+      <div class="myeongshik-card" onclick="navigateTo('screen-detail')">
+        <div class="ms-avatar">쫑</div>
+        <div class="ms-body">
+          <div class="ms-name">쫑 <span class="ms-relation rel-lover">연인</span></div>
+          <div class="ms-meta">1973/02/09 11:00 (양) · Seoul</div>
+          <div class="ms-recent">최근 분석: 연인궁합</div>
+          <div class="ms-actions">
+            <button class="ms-action-btn" onclick="event.stopPropagation();navigateTo('screen-result')">분석</button>
+            <button class="ms-action-btn" onclick="event.stopPropagation();">궁합</button>
+            <button class="ms-action-btn" onclick="event.stopPropagation();">더보기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="myeongshik-card" onclick="navigateTo('screen-detail')">
+        <div class="ms-avatar">누</div>
+        <div class="ms-body">
+          <div class="ms-name">누나 <span class="ms-relation rel-family">가족</span></div>
+          <div class="ms-meta">1966/04/03 18:00 (음) · Seoul</div>
+          <div class="ms-recent">최근 분석: 가족 궁합</div>
+          <div class="ms-actions">
+            <button class="ms-action-btn" onclick="event.stopPropagation();navigateTo('screen-result')">분석</button>
+            <button class="ms-action-btn" onclick="event.stopPropagation();">궁합</button>
+            <button class="ms-action-btn" onclick="event.stopPropagation();">더보기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="myeongshik-card" onclick="navigateTo('screen-detail')">
+        <div class="ms-avatar">친</div>
+        <div class="ms-body">
+          <div class="ms-name">친구A <span class="ms-relation rel-friend">지인</span></div>
+          <div class="ms-meta">1978/07/21 08:30 (양) · Seoul</div>
+          <div class="ms-recent">최근 분석: 없음</div>
+          <div class="ms-actions">
+            <button class="ms-action-btn" onclick="event.stopPropagation();navigateTo('screen-result')">분석</button>
+            <button class="ms-action-btn" onclick="event.stopPropagation();">궁합</button>
+            <button class="ms-action-btn" onclick="event.stopPropagation();">더보기</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- SCREEN 4: DETAIL (명식 상세) - Light -->
+  <!-- ============================================= -->
+  <div class="screen theme-light" id="screen-detail" data-tab="vault">
+    <div class="header">
+      <div class="header-left">
+        <button class="header-btn" onclick="goBack()" aria-label="뒤로가기">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+      </div>
+      <div class="header-center">내 사주</div>
+      <div class="header-right">
+        <button class="header-btn" aria-label="공유">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <!-- Banner -->
+      <div class="banner-card">
+        <div class="banner-sub">새해와 함께 펼쳐질 당신의 밝은 앞날!</div>
+        <div class="banner-title">26년 신년운세</div>
+        <div class="banner-emoji">🐴</div>
+      </div>
+
+      <!-- Person Info -->
+      <div class="person-info-card">
+        <div class="pi-left">
+          <div class="pi-name">김은우 <span style="font-size:11px;font-weight:500;color:var(--text-tertiary);">(본인)</span></div>
+          <div class="pi-meta">1970.02.15 (양력) · 03시 00분 · 남성</div>
+        </div>
+        <button class="pi-change">변경</button>
+      </div>
+
+      <!-- Five Element Cards -->
+      <div class="element-cards">
+        <div class="element-card">
+          <div class="ec-icon" style="background:var(--element-fire);">🔥</div>
+          <div class="ec-title">화</div>
+          <div class="ec-sub">오행</div>
+        </div>
+        <div class="element-card">
+          <div class="ec-icon" style="background:var(--element-fire);">🐅</div>
+          <div class="ec-title">붉은 호랑이</div>
+          <div class="ec-sub">일주 동물</div>
+        </div>
+        <div class="element-card">
+          <div class="ec-icon" style="background:var(--element-earth);color:#1F2937;">🍽️</div>
+          <div class="ec-title">식신</div>
+          <div class="ec-sub">타고난 성향</div>
+        </div>
+      </div>
+
+      <!-- Saju Grid -->
+      <div class="saju-grid-container">
+        <div class="saju-grid-title">사주 팔자</div>
+        <div class="saju-grid">
+          <div class="saju-column">
+            <div class="saju-label">시주</div>
+            <div class="saju-tile earth">己</div>
+            <div class="saju-tile earth">丑</div>
+            <div class="saju-sub">상관 / 양</div>
+          </div>
+          <div class="saju-column">
+            <div class="saju-label">일주</div>
+            <div class="saju-tile fire">丙</div>
+            <div class="saju-tile wood">寅</div>
+            <div class="saju-sub">편인 / 장생</div>
+          </div>
+          <div class="saju-column">
+            <div class="saju-label">월주</div>
+            <div class="saju-tile earth">戊</div>
+            <div class="saju-tile wood">寅</div>
+            <div class="saju-sub">식신 / 장생</div>
+          </div>
+          <div class="saju-column">
+            <div class="saju-label">년주</div>
+            <div class="saju-tile metal">庚</div>
+            <div class="saju-tile fire">戌</div>
+            <div class="saju-sub">편재 / 묘</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:100px;"></div>
+    </div>
+
+    <div class="cta-fixed">
+      <button class="cta-btn gold" onclick="navigateTo('screen-result')">운세 풀이 보기</button>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- SCREEN 5: RESULT (분석 결과) - Light -->
+  <!-- ============================================= -->
+  <div class="screen theme-light" id="screen-result" data-tab="records">
+    <div class="header">
+      <div class="header-left">
+        <button class="header-btn" onclick="goBack()" aria-label="뒤로가기">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+      </div>
+      <div class="header-center">금전운 분석 결과</div>
+      <div class="header-right">
+        <button class="header-btn" aria-label="저장">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button class="header-btn" aria-label="공유">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="summary-card">
+        <div class="sc-label">김은우님의 금전운 분석</div>
+        <div class="sc-headline">"올해는 수입 확대보다 지출 관리와 구조 정비가 중요한 흐름입니다."</div>
+      </div>
+
+      <div class="keyword-tags">
+        <span class="keyword-tag">재물 흐름</span>
+        <span class="keyword-tag">지출 관리</span>
+        <span class="keyword-tag">기회 포착</span>
+        <span class="keyword-tag">구조 정비</span>
+      </div>
+
+      <div class="result-section">
+        <div class="rs-title">📝 총평</div>
+        <div class="rs-body">올해는 결과를 얻기 위해 끊임없이 노력하여 결국에는 원하는 바나 그에 합당하는 결과를 얻게 되는 해입니다. 목표를 향해 가는 데 있어서 높은 인내심을 발휘할 수 있게 되며 경쟁자가 있다면 경쟁에 뒤처지지 않기 위해 온갖 애를 쓰게 되겠습니다. 현재는 무리한 확장보다 흐름 정비가 더 중요합니다.</div>
+      </div>
+
+      <div class="result-section">
+        <div class="rs-title">💪 강점</div>
+        <ul class="rs-list">
+          <li>정보를 빠르게 포착하는 감각이 살아 있습니다.</li>
+          <li>재물 기회를 보는 감이 좋습니다.</li>
+          <li>본인의 능력을 더욱 키워나가기 위해 계속해서 노력을 멈추지 않습니다.</li>
+        </ul>
+      </div>
+
+      <div class="result-section">
+        <div class="rs-title">⚠️ 주의점</div>
+        <ul class="rs-list">
+          <li>즉흥적 결정은 손실로 이어질 수 있습니다.</li>
+          <li>과신에 의한 손실에 주의하세요.</li>
+          <li>의욕이 높았던 만큼 타격도 클 수 있으니 힘든 시기를 보내게 됩니다.</li>
+        </ul>
+      </div>
+
+      <div class="result-section">
+        <div class="rs-title">📅 시기 포인트</div>
+        <ul class="rs-list">
+          <li>상반기: 정리와 구조 점검의 시기</li>
+          <li>하반기: 기회 확대와 재물 흐름 회복</li>
+          <li>4~6월: 투자보다 절약에 집중</li>
+          <li>9~11월: 새로운 수입원 기대</li>
+        </ul>
+      </div>
+
+      <div class="result-section">
+        <div class="rs-title">✅ 실행 조언</div>
+        <ul class="rs-list">
+          <li>큰 결정 전에 구조를 먼저 점검하세요.</li>
+          <li>소액 흐름부터 안정화시키세요.</li>
+          <li>무리하지 말고 조용히 스스로를 다독이는 시간을 가지세요.</li>
+        </ul>
+      </div>
+
+      <div class="section" style="margin-top:8px;">
+        <div class="section-header">
+          <div class="section-title">관련 분석 추천</div>
+        </div>
+      </div>
+      <div class="h-scroll">
+        <div class="h-card" onclick="navigateTo('screen-result')" style="cursor:pointer;">
+          <div class="h-icon">📈</div>
+          <div class="h-title">운세 흐름</div>
+          <div class="h-desc">함께 보기</div>
+        </div>
+        <div class="h-card" onclick="navigateTo('screen-result')" style="cursor:pointer;">
+          <div class="h-icon">💼</div>
+          <div class="h-title">사업운</div>
+          <div class="h-desc">이어서 보기</div>
+        </div>
+        <div class="h-card" onclick="navigateTo('screen-result')" style="cursor:pointer;">
+          <div class="h-icon">💕</div>
+          <div class="h-title">애정운</div>
+          <div class="h-desc">함께 보기</div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="action-bar-btn primary">💬 추가 질문하기</button>
+        <button class="action-bar-btn">📌 핵심만 요약</button>
+        <button class="action-bar-btn">💡 쉽게 다시 설명</button>
+        <button class="action-bar-btn">🔗 관련 분석 추천</button>
+      </div>
+
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- SCREEN 6: RECORDS (기록) - Light -->
+  <!-- ============================================= -->
+  <div class="screen theme-light" id="screen-records" data-tab="records">
+    <div class="header">
+      <div class="header-left">
+        <span style="font-size:18px;font-weight:700;color:var(--text-primary);">분석 기록</span>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" aria-label="검색">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="chip-row">
+        <button class="chip active">전체</button>
+        <button class="chip">내 분석</button>
+        <button class="chip">궁합</button>
+        <button class="chip">질문답변</button>
+        <button class="chip">저장한 결과</button>
+      </div>
+
+      <div class="record-card" onclick="navigateTo('screen-result')">
+        <div class="rc-header">
+          <div class="rc-title">김은우 · 2026 신년운세</div>
+          <div class="rc-date">2026.04.02</div>
+        </div>
+        <div class="rc-summary">"올해는 정리와 선택의 균형이 중요한 시기"</div>
+        <div class="rc-tags">
+          <span class="rc-tag">내 분석</span>
+          <span class="rc-tag">저장됨</span>
+        </div>
+        <div class="rc-actions">
+          <button class="rc-action-btn" onclick="event.stopPropagation();navigateTo('screen-result')">다시보기</button>
+        </div>
+      </div>
+
+      <div class="record-card" onclick="navigateTo('screen-result')">
+        <div class="rc-header">
+          <div class="rc-title">김은우 × 쫑 · 연인궁합</div>
+          <div class="rc-date">2026.04.02</div>
+        </div>
+        <div class="rc-summary">"감정 연결은 강하지만 리듬 차이를 조율해야 함"</div>
+        <div class="rc-tags">
+          <span class="rc-tag">궁합</span>
+          <span class="rc-tag">질문 12개</span>
+        </div>
+        <div class="rc-actions">
+          <button class="rc-action-btn" onclick="event.stopPropagation();navigateTo('screen-result')">결과 보기</button>
+          <button class="rc-action-btn" onclick="event.stopPropagation();">대화 보기</button>
+        </div>
+      </div>
+
+      <div class="record-card" onclick="navigateTo('screen-result')">
+        <div class="rc-header">
+          <div class="rc-title">김은우 · 금전운</div>
+          <div class="rc-date">2026.04.01</div>
+        </div>
+        <div class="rc-summary">"지출 통제가 핵심 포인트"</div>
+        <div class="rc-tags">
+          <span class="rc-tag">저장한 결과</span>
+        </div>
+        <div class="rc-actions">
+          <button class="rc-action-btn" onclick="event.stopPropagation();navigateTo('screen-result')">다시보기</button>
+        </div>
+      </div>
+
+      <div class="record-card" onclick="navigateTo('screen-result')">
+        <div class="rc-header">
+          <div class="rc-title">김은우 · 직업운</div>
+          <div class="rc-date">2026.03.28</div>
+        </div>
+        <div class="rc-summary">"현재 커리어 방향성은 맞으나 디테일 조정 필요"</div>
+        <div class="rc-tags">
+          <span class="rc-tag">내 분석</span>
+        </div>
+        <div class="rc-actions">
+          <button class="rc-action-btn" onclick="event.stopPropagation();navigateTo('screen-result')">다시보기</button>
+        </div>
+      </div>
+
+      <div class="record-card" onclick="navigateTo('screen-result')">
+        <div class="rc-header">
+          <div class="rc-title">김은우 · 평생운세</div>
+          <div class="rc-date">2026.03.25</div>
+        </div>
+        <div class="rc-summary">"타고난 에너지가 강하며 중년 이후 큰 전환기"</div>
+        <div class="rc-tags">
+          <span class="rc-tag">내 분석</span>
+          <span class="rc-tag">질문 5개</span>
+        </div>
+        <div class="rc-actions">
+          <button class="rc-action-btn" onclick="event.stopPropagation();navigateTo('screen-result')">결과 보기</button>
+          <button class="rc-action-btn" onclick="event.stopPropagation();">대화 보기</button>
+        </div>
+      </div>
+
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- SCREEN 7: MY PAGE (마이) - Light -->
+  <!-- ============================================= -->
+  <div class="screen theme-light" id="screen-mypage" data-tab="mypage">
+    <div class="header">
+      <div class="header-left">
+        <span style="font-size:18px;font-weight:700;color:var(--text-primary);">마이페이지</span>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" aria-label="설정">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="profile-card">
+        <div class="profile-info">
+          <div class="avatar">은</div>
+          <div>
+            <div class="profile-name">김은우</div>
+            <div class="profile-meta">저장된 명식과 분석 기록을 한곳에서 관리하세요.</div>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="profile-action-btn">프로필 수정</button>
+          <button class="profile-action-btn">알림 설정</button>
+        </div>
+      </div>
+
+      <div class="menu-group">
+        <div class="menu-group-title">내 보관함</div>
+        <div class="menu-list">
+          <div class="menu-item" onclick="navigateTo('screen-vault')">
+            <div class="mi-icon">📋</div>
+            <div class="mi-label">명식 보관소</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item" onclick="navigateTo('screen-vault')">
+            <div class="mi-icon">⭐</div>
+            <div class="mi-label">즐겨찾기</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item" onclick="navigateTo('screen-home')">
+            <div class="mi-icon">🕐</div>
+            <div class="mi-label">최근 본 분석</div>
+            <div class="mi-chevron">›</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-group">
+        <div class="menu-group-title">분석 관리</div>
+        <div class="menu-list">
+          <div class="menu-item" onclick="navigateTo('screen-records')">
+            <div class="mi-icon">📊</div>
+            <div class="mi-label">분석 기록</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item" onclick="navigateTo('screen-records')">
+            <div class="mi-icon">💾</div>
+            <div class="mi-label">저장 결과</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item">
+            <div class="mi-icon">💬</div>
+            <div class="mi-label">질문/답변 내역</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item">
+            <div class="mi-icon">🧾</div>
+            <div class="mi-label">결제한 리포트</div>
+            <div class="mi-chevron">›</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-group">
+        <div class="menu-group-title">서비스 설정</div>
+        <div class="menu-list">
+          <div class="menu-item">
+            <div class="mi-icon">🔔</div>
+            <div class="mi-label">알림</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item">
+            <div class="mi-icon">👑</div>
+            <div class="mi-label">이용권/구독</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item">
+            <div class="mi-icon">💳</div>
+            <div class="mi-label">결제 내역</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item">
+            <div class="mi-icon">🗂️</div>
+            <div class="mi-label">데이터 관리</div>
+            <div class="mi-chevron">›</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-group">
+        <div class="menu-group-title">지원</div>
+        <div class="menu-list">
+          <div class="menu-item">
+            <div class="mi-icon">📩</div>
+            <div class="mi-label">문의하기</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item">
+            <div class="mi-icon">❓</div>
+            <div class="mi-label">자주 묻는 질문</div>
+            <div class="mi-chevron">›</div>
+          </div>
+          <div class="menu-item">
+            <div class="mi-icon">📢</div>
+            <div class="mi-label">공지사항</div>
+            <div class="mi-chevron">›</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- BOTTOM TAB BAR (Shared) -->
+  <!-- ============================================= -->
+  <nav class="tab-bar theme-light" id="main-tab-bar">
+    <button class="tab-item active" data-screen="screen-home" onclick="switchTab(this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>홈</span>
+    </button>
+    <button class="tab-item" data-screen="screen-analysis" onclick="switchTab(this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <span>분석</span>
+    </button>
+    <button class="tab-item" data-screen="screen-vault" onclick="switchTab(this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      <span>보관소</span>
+    </button>
+    <button class="tab-item" data-screen="screen-records" onclick="switchTab(this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>기록</span>
+    </button>
+    <button class="tab-item" data-screen="screen-mypage" onclick="switchTab(this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>마이</span>
+    </button>
+  </nav>
+
+</div>
+
+<script src="js/app.js?v=3"></script>
+</body>
+</html>
