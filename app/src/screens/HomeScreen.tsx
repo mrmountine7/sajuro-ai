@@ -184,10 +184,9 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
         {/* ── 슬라이드 카드 ── */}
         <div
           style={{
-            display: 'flex', overflowX: 'auto', overflowY: 'hidden',
+            display: 'flex', overflowX: 'auto', overflowY: 'visible',
             scrollSnapType: 'x mandatory', scrollBehavior: 'smooth',
             gap: 12, padding: '0 20px 12px',
-            height: 230,
           } as React.CSSProperties}
           onScroll={e => {
             const el = e.currentTarget
@@ -213,7 +212,7 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
                 {s.title}
               </div>
               {/* 설명 */}
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12, flex: 1 }}>
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
                 {s.desc}
               </div>
               {/* 분석 미리보기 */}
