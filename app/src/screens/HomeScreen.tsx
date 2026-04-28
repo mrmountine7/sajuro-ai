@@ -321,9 +321,10 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
         <div style={{ height: 16 }} />
       </div>
 
-      {/* ── 하단 CTA (고정) ── */}
+      {/* ── 하단 CTA (고정) — 탭바(60px) 위로 올림 ── */}
       <div style={{
-        padding: '10px 20px 30px', borderTop: '1px solid var(--border-1)',
+        padding: '10px 20px calc(env(safe-area-inset-bottom, 0px) + 74px)',
+        borderTop: '1px solid var(--border-1)',
         background: 'var(--bg-surface)', flexShrink: 0,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
       }}>
