@@ -26,11 +26,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: app/package-lock.json
 
-      - name: Install app dependencies
+      - name: Install dependencies
         working-directory: app
         run: npm install --legacy-peer-deps
 
-      - name: Build app
+      - name: Build
         working-directory: app
         run: npx vite build
         env:
@@ -38,36 +38,38 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
-      - name: Prepare Vercel output structure
+      - name: Verify dist output
+        working-directory: app
+        run: |
+          echo "=== dist/ contents ==="
+          ls -la dist/
+          echo "=== dist/assets/ ==="
+          ls -la dist/assets/ || echo "no assets dir"
+          echo "=== Total size ==="
+          du -sh dist/
+
+      - name: Prepare Vercel prebuilt output
         working-directory: app
         run: |
           mkdir -p .vercel/output/static
           cp -r dist/. .vercel/output/static/
-          cat > .vercel/output/config.json << 'EOF'
-          {
-            "version": 3,
-            "routes": [
-              {
-                "src": "^/assets/(.*)$",
-                "dest": "/assets/$1"
-              },
-              {
-                "src": "/((?!api/).*)",
-                "dest": "/index.html"
-              }
-            ]
-          }
-          EOF
+          printf '{"version":3,"routes":[{"src":"^/assets/(.*)$","dest":"/assets/$1"},{"src":"/((?!api/).*)", "dest":"/index.html"}]}' > .vercel/output/config.json
+          echo "=== .vercel/output/ contents ==="
+          ls -la .vercel/output/
+          echo "=== .vercel/output/static/ ==="
+          ls -la .vercel/output/static/
+          echo "=== Total prebuilt size ==="
+          du -sh .vercel/output/
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
+
+      - name: Deploy Production
+        if: github.ref == 'refs/heads/main'
+        working-directory: app
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy Preview
         if: github.event_name == 'pull_request'
         working-directory: app
         run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy Production
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: app
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
