@@ -13,7 +13,8 @@ api/.env
 *.env.local
 *.env.production
 
-# Vercel
+# Vercel - keep app/.vercel/project.json for CI deploys
+!app/.vercel/project.json
 app/.vercel/
 .vercel/
 
