@@ -184,7 +184,8 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
         {/* ── 슬라이드 카드 ── */}
         <div
           style={{
-            display: 'flex', overflowX: 'auto', overflowY: 'visible',
+            display: 'flex', alignItems: 'flex-start',
+            overflowX: 'auto', overflowY: 'visible',
             scrollSnapType: 'x mandatory', scrollBehavior: 'smooth',
             gap: 12, padding: '0 20px 12px',
           } as React.CSSProperties}
