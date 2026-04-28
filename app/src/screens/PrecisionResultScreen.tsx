@@ -546,7 +546,6 @@ export default function PrecisionResultScreen() {
           body: JSON.stringify({
             ...profile,
             analysis_level: 'expert',
-            section_ids: selectedItems,
           }),
         })
         if (!res.ok) throw new Error(`API 오류: ${res.status}`)
