@@ -38,33 +38,17 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
-      - name: Verify dist output
-        working-directory: app
-        run: |
-          echo "=== dist/ contents ==="
-          ls -la dist/
-          echo "=== dist/assets/ ==="
-          ls -la dist/assets/ || echo "no assets dir"
-          echo "=== Total size ==="
-          du -sh dist/
-
-      - name: Prepare Vercel prebuilt output
+      - name: Prepare Vercel output
         working-directory: app
         run: |
           mkdir -p .vercel/output/static
           cp -r dist/. .vercel/output/static/
           printf '{"version":3,"routes":[{"src":"^/assets/(.*)$","dest":"/assets/$1"},{"src":"/((?!api/).*)", "dest":"/index.html"}]}' > .vercel/output/config.json
-          echo "=== .vercel/output/ contents ==="
-          ls -la .vercel/output/
-          echo "=== .vercel/output/static/ ==="
-          ls -la .vercel/output/static/
-          echo "=== Total prebuilt size ==="
-          du -sh .vercel/output/
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Deploy Production
+      - name: Deploy to Production
         if: github.ref == 'refs/heads/main'
         working-directory: app
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
