@@ -71,3 +71,6 @@ export default defineConfig([
   },
 ])
 ```
+
+
+> Deployed via GitHub ¡æ Vercel auto-deploy (2026-04-28)
