@@ -195,10 +195,12 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
         >
           {SLIDES.map((s, i) => (
             <div key={i} style={{
-              minWidth: 'calc(100% - 40px)', scrollSnapAlign: 'center', flexShrink: 0,
+              minWidth: 'calc(100vw - 80px)', maxWidth: 'calc(100vw - 80px)',
+              scrollSnapAlign: 'center', flexShrink: 0,
               borderRadius: 'var(--radius-xl)', padding: '20px',
               background: s.gradient, border: `1px solid ${s.accent}22`,
               display: 'flex', flexDirection: 'column',
+              overflow: 'hidden', boxSizing: 'border-box',
             }}>
               {/* 배지 + 아이콘 */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -212,7 +214,7 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
                 {s.title}
               </div>
               {/* 설명 */}
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 {s.desc}
               </div>
               {/* 분석 미리보기 */}
