@@ -457,16 +457,19 @@ export default function ManseryukScreen() {
         <div style={{
           display: 'flex', gap: 8, padding: '6px 20px 8px',
           overflowX: 'auto', scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+          msOverflowStyle: 'none',
           background: 'var(--bg-app)',
           borderBottom: '1px solid var(--border-1)',
           flexShrink: 0,
+          flexWrap: 'nowrap',
         }}>
           {allProfiles.map(p => (
             <button
               key={p.id}
               onClick={() => setSelectedProfileId(p.id)}
               className={`s-chip ${selectedProfileId === p.id ? 's-chip-active' : ''}`}
-              style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+              style={{ flexShrink: 0, whiteSpace: 'nowrap', minWidth: 'max-content' }}
             >
               {p.name}
             </button>
