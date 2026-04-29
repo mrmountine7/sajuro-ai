@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
-import { getDeviceId } from '@/lib/device-id'
+import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
 import {
   calculateFullSaju, calculateDaeun,
   getTenGodIndex, TEN_GODS,
@@ -48,12 +48,11 @@ export default function DaeunTimelineScreen() {
   useEffect(() => {
     async function load() {
       if (!supabase) { setError('Supabase 미연결'); setLoading(false); return }
-      const { data } = await supabase
-        .from('profiles')
-        .select('name, gender, birth_year, birth_month, birth_day, birth_hour, calendar_type')
-        .eq('device_id', getDeviceId())
-        .eq('is_primary', true)
-        .single()
+      const identity = await getCurrentIdentity()
+      const { data } = await applyUserFilter(
+        supabase.from('profiles').select('name, gender, birth_year, birth_month, birth_day, birth_hour, calendar_type'),
+        identity
+      ).eq('is_primary', true).single()
       if (!data) { setError('프로필이 없습니다. 사주 보관소에서 먼저 등록해주세요.'); setLoading(false); return }
       const p = data as Profile
       setProfile(p)

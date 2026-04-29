@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
-import { getDeviceId } from '@/lib/device-id'
+import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
 import { getDailyFortune, getDayPillar, type DailyFortune } from '@/lib/daily-fortune'
 
 /* ─── 십성 상세 데이터 ─── */
@@ -387,12 +387,11 @@ export default function DailyFortuneCalendarScreen() {
   useEffect(() => {
     async function load() {
       if (!supabase) return
-      const { data } = await supabase
-        .from('profiles')
-        .select('birth_year, birth_month, birth_day, calendar_type')
-        .eq('device_id', getDeviceId())
-        .eq('is_primary', true)
-        .single()
+      const identity = await getCurrentIdentity()
+      const { data } = await applyUserFilter(
+        supabase.from('profiles').select('birth_year, birth_month, birth_day, calendar_type'),
+        identity
+      ).eq('is_primary', true).single()
       if (data) setProfile(data as Profile)
     }
     load()

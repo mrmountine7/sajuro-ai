@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import { Loader2, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { getDeviceId } from '@/lib/device-id'
+import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
 import { calculateFullSaju } from '@/lib/saju-engine'
 import { getDailyFortune } from '@/lib/daily-fortune'
 import { lunarToSolar } from '@/lib/lunar-solar'
@@ -94,12 +94,11 @@ export default function DreamScreen() {
   useEffect(() => {
     async function loadSaju() {
       if (!supabase) return
-      const { data } = await supabase
-        .from('profiles')
-        .select('birth_year,birth_month,birth_day,birth_hour,calendar_type,gender')
-        .eq('device_id', getDeviceId())
-        .eq('is_primary', true)
-        .single()
+      const identity = await getCurrentIdentity()
+      const { data } = await applyUserFilter(
+        supabase.from('profiles').select('birth_year,birth_month,birth_day,birth_hour,calendar_type,gender'),
+        identity
+      ).eq('is_primary', true).single()
       if (!data) return
 
       const { birth_year, birth_month, birth_day, calendar_type } = data

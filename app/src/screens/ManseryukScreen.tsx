@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
-import { getDeviceId } from '@/lib/device-id'
+import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
 import { lunarToSolar } from '@/lib/lunar-solar'
 import {
   calculateFullSaju, calculateDaeun, getYearFortune, getMonthFortunes, getDayFortunes,
@@ -341,11 +341,13 @@ export default function ManseryukScreen() {
   useEffect(() => {
     async function loadProfiles() {
       if (!supabase) return
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, name, gender, birth_year, birth_month, birth_day, birth_hour, calendar_type, is_primary')
-        .eq('device_id', getDeviceId())
-        .order('is_primary', { ascending: false })
+      const identity = await getCurrentIdentity()
+      const { data } = await applyUserFilter(
+        supabase.from('profiles')
+          .select('id, name, gender, birth_year, birth_month, birth_day, birth_hour, calendar_type, is_primary')
+          .order('is_primary', { ascending: false }),
+        identity
+      )
       if (data && data.length > 0) {
         setAllProfiles(data as any)
         // 기본 선택: 주 프로필 또는 첫 번째
