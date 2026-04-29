@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import Header from '@/components/layout/Header'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 /* ─── 딥블루 디자인 토큰 ─── */
 const N = {

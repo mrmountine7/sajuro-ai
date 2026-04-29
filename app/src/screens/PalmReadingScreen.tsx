@@ -5,7 +5,7 @@ import Header from '@/components/layout/Header'
 import { getDeviceId } from '@/lib/device-id'
 import { getUser } from '@/lib/auth'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 const MAX_QA = 5
 
 /* ─── 디자인 토큰 (따뜻한 로즈골드/스킨) ─── */

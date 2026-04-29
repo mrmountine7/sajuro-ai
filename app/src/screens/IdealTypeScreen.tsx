@@ -5,7 +5,7 @@ import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
 import { getDeviceId } from '@/lib/device-id'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 /* ─── 분홍/로즈 디자인 토큰 ─── */
 const R = {

@@ -401,7 +401,7 @@ export default function AnalysisEntryScreen() {
         if (!p1 || !p2) { alert('두 사람을 모두 선택해주세요.'); return }
 
         if (serviceId === 'family' || serviceId === 'general') {
-          const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+          const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
           const res = await fetch(`${API_BASE}/api/compatibility/family`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -415,7 +415,7 @@ export default function AnalysisEntryScreen() {
           const analysisData = await res.json()
           nav('/family-result', { state: { analysisData } })
         } else if (serviceId === 'marriage') {
-          const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+          const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
           const res = await fetch(`${API_BASE}/api/marriage/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

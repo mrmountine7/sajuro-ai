@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { getDeviceId } from '@/lib/device-id'
 import { getUser } from '@/lib/auth'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 const MAX_QA_ROUNDS = 10
 
 /* ─── 카카오톡 공유 (Web Share API → 클립보드 폴백) ─── */
