@@ -6,7 +6,7 @@ import { analyzeCompatibility, calculateSaju } from '@/lib/api-client'
 import { Check, Loader2, X, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Profile } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
-import { getDeviceId } from '@/lib/device-id'
+import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
 
 /* ─── 정밀분석 항목 정의 ─── */
 interface AnalysisItem { id: string; label: string; desc: string }
@@ -306,12 +306,15 @@ export default function AnalysisEntryScreen() {
     async function fetchProfiles() {
       if (!supabase) { setProfilesLoading(false); return }
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, name, gender, birth_year, birth_month, birth_day, birth_hour, calendar_type, is_primary, is_favorite, group_name, created_at')
-          .eq('device_id', getDeviceId())
-          .order('is_primary', { ascending: false })
-          .order('created_at', { ascending: true })
+        const identity = await getCurrentIdentity()
+        const { data } = await applyUserFilter(
+          supabase
+            .from('profiles')
+            .select('id, name, gender, birth_year, birth_month, birth_day, birth_hour, calendar_type, is_primary, is_favorite, group_name, created_at')
+            .order('is_primary', { ascending: false })
+            .order('created_at', { ascending: true }),
+          identity
+        )
         if (data && data.length > 0) {
           // Supabase 컬럼 → ProfileWithGroup 타입 변환
           const mapped: ProfileWithGroup[] = data.map((p: any) => ({
