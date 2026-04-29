@@ -4,6 +4,7 @@ import { Loader2, Pencil, Trash2, Plus, Check, X, Settings2 } from 'lucide-react
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
 import { getDeviceId } from '@/lib/device-id'
+import { getUser } from '@/lib/auth'
 import { getZodiacData } from '@/lib/zodiac-icons'
 import { analysisMenuItems, categoryLabels, badgeConfig } from '@/lib/analysis-menu'
 import type { AnalysisCategory } from '@/lib/types'
@@ -355,12 +356,19 @@ export default function VaultScreen() {
     setLoading(true); setError('')
     try {
       if (!supabase) throw new Error('Supabase 미연결')
+      const kakaoUser = await getUser()
       const deviceId = getDeviceId()
-      const { data, error: err } = await supabase
+      let q = supabase
         .from('profiles')
         .select('id,name,gender,birth_year,birth_month,birth_day,birth_hour,calendar_type,city,country,is_primary,is_favorite,group_name,created_at')
-        .eq('device_id', deviceId)
         .order('created_at', { ascending: true })
+      // 로그인 상태: user_id 기준 / 비로그인: device_id 기준(user_id 없는 것만)
+      if (kakaoUser?.id) {
+        q = q.eq('user_id', kakaoUser.id)
+      } else {
+        q = q.eq('device_id', deviceId).is('user_id', null)
+      }
+      const { data, error: err } = await q
       if (err) throw err
       setProfiles((data as DbProfile[]) ?? [])
     } catch (e) {
@@ -398,10 +406,12 @@ export default function VaultScreen() {
   /* 그룹 이름 변경 */
   const handleRename = async (oldName: string, newName: string) => {
     if (!supabase) return
+    const kakaoUser = await getUser()
     const deviceId = getDeviceId()
-    await supabase.from('profiles').update({ group_name: newName })
-      .eq('device_id', deviceId).eq('group_name', oldName)
-    // extraGroups에 있는 경우도 업데이트
+    let q = supabase.from('profiles').update({ group_name: newName }).eq('group_name', oldName)
+    if (kakaoUser?.id) q = q.eq('user_id', kakaoUser.id)
+    else q = q.eq('device_id', deviceId).is('user_id', null)
+    await q
     saveExtraGroups(extraGroups.map(g => g === oldName ? newName : g))
     if (selectedGroup === oldName) setSelectedGroup(newName)
     await fetchProfiles()
@@ -410,9 +420,12 @@ export default function VaultScreen() {
   /* 그룹 삭제 */
   const handleDelete = async (name: string) => {
     if (!supabase) return
+    const kakaoUser = await getUser()
     const deviceId = getDeviceId()
-    await supabase.from('profiles').update({ group_name: null })
-      .eq('device_id', deviceId).eq('group_name', name)
+    let q = supabase.from('profiles').update({ group_name: null }).eq('group_name', name)
+    if (kakaoUser?.id) q = q.eq('user_id', kakaoUser.id)
+    else q = q.eq('device_id', deviceId).is('user_id', null)
+    await q
     saveExtraGroups(extraGroups.filter(g => g !== name))
     if (selectedGroup === name) setSelectedGroup('전체')
     await fetchProfiles()

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronDown, Info, Loader2, Star, Crown, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getDeviceId } from '@/lib/device-id'
+import { getUser } from '@/lib/auth'
 import { useProfileGuard } from '@/lib/profile-guard-context'
 
 /* ─── 타입 ─── */
@@ -195,13 +196,12 @@ export default function AddProfileScreen() {
             setShowCustom(true)
           }
         } else {
+          const kakaoUser = await getUser()
           const deviceId = getDeviceId()
-          const { data } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('is_primary', true)
-            .eq('device_id', deviceId)
-            .limit(1)
+          let q = supabase.from('profiles').select('id').eq('is_primary', true).limit(1)
+          if (kakaoUser?.id) q = q.eq('user_id', kakaoUser.id)
+          else q = q.eq('device_id', deviceId).is('user_id', null)
+          const { data } = await q
           setHasPrimary(!!(data && data.length > 0))
         }
       } catch (e) {
@@ -245,12 +245,15 @@ export default function AddProfileScreen() {
         if (error) throw error
       } else {
         const deviceId = getDeviceId()
+        const kakaoUser = await getUser()
+        const userId = kakaoUser?.id ?? null
         if (isPrimary && hasPrimary) {
-          await supabase.from('profiles').update({ is_primary: false })
-            .eq('device_id', deviceId).eq('is_primary', true)
+          const q = supabase.from('profiles').update({ is_primary: false }).eq('is_primary', true)
+          if (userId) await q.eq('user_id', userId)
+          else await q.eq('device_id', deviceId)
         }
         const { error } = await supabase.from('profiles').insert({
-          ...payload, is_favorite: false, device_id: deviceId, user_id: null,
+          ...payload, is_favorite: false, device_id: deviceId, user_id: userId,
         })
         if (error) throw error
       }
