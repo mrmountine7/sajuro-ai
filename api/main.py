@@ -135,6 +135,11 @@ async def root():
     return {"status": "ok", "service": "sajuro.ai API", "version": "1.1.0", "has_lifetime": True}
 
 
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "service": "sajuro.ai API", "version": "1.1.0"}
+
+
 @app.post("/api/saju/calculate")
 async def calc_saju(req: SajuRequest):
     try:
