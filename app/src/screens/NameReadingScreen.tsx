@@ -251,7 +251,7 @@ export default function NameReadingScreen() {
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
 
         {/* ─── 입력 카드 ─── */}
-        <div style={{ margin: '14px 20px 16px', padding: '18px 16px', borderRadius: 16, background: 'var(--bg-surface)', border: `1.5px solid ${N.border}` }}>
+        <div style={{ margin: '14px 20px 16px', padding: '18px 16px', borderRadius: 16, background: 'var(--bg-surface)', border: `1.5px solid ${N.border}`, overflow: 'hidden', boxSizing: 'border-box' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: N.primary, marginBottom: 14 }}>이름 입력</div>
 
           {/* 성씨 입력 */}
@@ -263,7 +263,7 @@ export default function NameReadingScreen() {
                 onChange={e => setSurnameHangul(e.target.value.slice(0,1))}
                 placeholder="성씨 입력 (예: 김)"
                 maxLength={1}
-                style={{ flex: 1, height: 42, padding: '0 12px', borderRadius: 10, border: `1.5px solid ${surnameHangul ? N.border : 'var(--border-1)'}`, background: surnameHangul ? N.bg : 'var(--bg-surface)', fontSize: 14, outline: 'none', fontFamily: 'inherit', color: N.text, transition: 'all 0.15s' }}
+                style={{ flex: 1, minWidth: 0, height: 42, padding: '0 12px', borderRadius: 10, border: `1.5px solid ${surnameHangul ? N.border : 'var(--border-1)'}`, background: surnameHangul ? N.bg : 'var(--bg-surface)', fontSize: 14, outline: 'none', fontFamily: 'inherit', color: N.text, transition: 'all 0.15s' }}
               />
               {/* 성씨 한자 선택 버튼 — 글자 입력 후 항상 표시 */}
               {surnameHangul && (
