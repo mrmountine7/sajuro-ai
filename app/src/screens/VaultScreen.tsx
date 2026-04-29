@@ -346,10 +346,53 @@ export default function VaultScreen() {
   }, [])
   const [showGroupMgmt, setShowGroupMgmt] = useState(false)
   const [analysisTarget, setAnalysisTarget] = useState<{ name: string; id: string } | null>(null)
-  // 사용자 정의 그룹 목록 (기본 그룹 + 추가된 커스텀 그룹, localStorage 저장)
+  // 사용자 정의 그룹 목록 (Supabase 저장, localStorage는 캐시용 폴백)
   const [extraGroups, setExtraGroups] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('saju_extra_groups') || '[]') } catch { return [] }
   })
+
+  /* ─── Supabase에서 extra 그룹 로드 ─── */
+  const fetchExtraGroups = useCallback(async () => {
+    if (!supabase) return
+    try {
+      const identity = await getCurrentIdentity()
+      const { data, error } = await applyUserFilter(
+        supabase.from('user_groups').select('name').order('created_at', { ascending: true }),
+        identity
+      )
+      if (error) throw error
+      const names = (data as { name: string }[]).map(r => r.name)
+      setExtraGroups(names)
+      localStorage.setItem('saju_extra_groups', JSON.stringify(names))
+    } catch {
+      // user_groups 테이블 미생성 시 localStorage 폴백 유지
+    }
+  }, [])
+
+  /* ─── Supabase에 extra 그룹 저장 (전체 교체) ─── */
+  const saveExtraGroupsToSupabase = useCallback(async (newGroups: string[], prevGroups: string[]) => {
+    if (!supabase) return
+    try {
+      const identity = await getCurrentIdentity()
+      const added   = newGroups.filter(g => !prevGroups.includes(g))
+      const removed = prevGroups.filter(g => !newGroups.includes(g))
+
+      for (const name of added) {
+        const row = identity.userId
+          ? { name, user_id: identity.userId, device_id: identity.deviceId }
+          : { name, device_id: identity.deviceId }
+        await supabase.from('user_groups').upsert(row, { ignoreDuplicates: true })
+      }
+      for (const name of removed) {
+        await applyUserFilter(
+          supabase.from('user_groups').delete().eq('name', name),
+          identity
+        )
+      }
+    } catch {
+      // 테이블 없으면 localStorage만 사용
+    }
+  }, [])
 
   const fetchProfiles = async () => {
     setLoading(true); setError('')
@@ -369,12 +412,17 @@ export default function VaultScreen() {
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchProfiles() }, [location.key])
+  useEffect(() => {
+    fetchProfiles()
+    fetchExtraGroups()
+  }, [location.key, fetchExtraGroups])
 
-  /* 그룹 저장 (localStorage) */
+  /* 그룹 저장 (Supabase + localStorage 캐시) */
   const saveExtraGroups = (groups: string[]) => {
+    const prev = extraGroups
     setExtraGroups(groups)
     localStorage.setItem('saju_extra_groups', JSON.stringify(groups))
+    saveExtraGroupsToSupabase(groups, prev)
   }
 
   /* 탭 계산 */
