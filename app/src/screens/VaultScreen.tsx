@@ -440,7 +440,7 @@ export default function VaultScreen() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Header title="사주 보관소" showBack onBack={() => nav(-1)} rightActions={['fontSize', 'add', 'search']}
+      <Header title="사주 보관소" showBack onBack={() => nav(-1)} rightActions={['fontSize', 'kakao', 'add']}
         onAction={a => { if (a === 'add') nav('/add-profile') }} />
 
       {loading ? (
