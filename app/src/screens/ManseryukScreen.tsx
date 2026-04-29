@@ -455,25 +455,30 @@ export default function ManseryukScreen() {
       {/* ─── 프로필 선택 칩 바 ─── */}
       {allProfiles.length > 1 && (
         <div style={{
-          display: 'flex', gap: 8, padding: '6px 20px 8px',
-          overflowX: 'auto', scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch',
-          msOverflowStyle: 'none',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch' as any,
+          scrollbarWidth: 'none' as any,
+          msOverflowStyle: 'none' as any,
           background: 'var(--bg-app)',
           borderBottom: '1px solid var(--border-1)',
           flexShrink: 0,
-          flexWrap: 'nowrap',
         }}>
-          {allProfiles.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setSelectedProfileId(p.id)}
-              className={`s-chip ${selectedProfileId === p.id ? 's-chip-active' : ''}`}
-              style={{ flexShrink: 0, whiteSpace: 'nowrap', minWidth: 'max-content' }}
-            >
-              {p.name}
-            </button>
-          ))}
+          <div style={{
+            display: 'flex', gap: 8,
+            padding: '6px 20px 8px',
+            width: 'max-content',
+          }}>
+            {allProfiles.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedProfileId(p.id)}
+                className={`s-chip ${selectedProfileId === p.id ? 's-chip-active' : ''}`}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
