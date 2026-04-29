@@ -3,7 +3,8 @@
   "outputDirectory": "app/dist",
   "installCommand": "echo skip-root-install",
   "framework": null,
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

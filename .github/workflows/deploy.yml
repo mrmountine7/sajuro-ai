@@ -61,7 +61,7 @@ jobs:
         run: |
           mkdir -p .vercel/output/static
           cp -r dist/. .vercel/output/static/
-          printf '{"version":3,"routes":[{"src":"^/assets/(.*)$","dest":"/assets/$1"},{"src":"/((?!api/).*)", "dest":"/index.html"}]}' > .vercel/output/config.json
+          printf '{"version":3,"routes":[{"handle":"filesystem"},{"src":"/(.*)","dest":"/index.html"}]}' > .vercel/output/config.json
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
