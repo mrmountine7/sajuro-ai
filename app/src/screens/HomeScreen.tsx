@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Loader2, ChevronDown } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
-import { getDeviceId } from '@/lib/device-id'
-import { getUser } from '@/lib/auth'
+import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
 import { LANGUAGES, getLang, setLang } from '@/lib/i18n'
 import { useProfileGuard } from '@/lib/profile-guard-context'
 
@@ -371,22 +370,17 @@ function PersonalizedHome({ primaryName, primaryId, nav }: {
   const fetchRecent = useCallback(async () => {
     if (!supabase) return
     try {
-      const kakaoUser = await getUser()
-      const deviceId = getDeviceId()
-
-      const applyFilter = (qb: any) =>
-        kakaoUser?.id
-          ? qb.or(`device_id.eq.${deviceId},user_id.eq.${kakaoUser.id}`)
-          : qb.eq('device_id', deviceId)
+      const identity = await getCurrentIdentity()
 
       const all: (RecentItem & { ts: number })[] = []
 
       // 정밀분석 / 결혼궁합
-      const { data: pData } = await applyFilter(
+      const { data: pData } = await applyUserFilter(
         supabase.from('precision_analyses')
           .select('profile_name,created_at')
           .order('created_at', { ascending: false })
-          .limit(3)
+          .limit(3),
+        identity
       )
       for (const r of (pData ?? []) as any[]) {
         const n = r.profile_name || ''
@@ -399,22 +393,24 @@ function PersonalizedHome({ primaryName, primaryId, nav }: {
       }
 
       // 평생운세
-      const { data: lData } = await applyFilter(
+      const { data: lData } = await applyUserFilter(
         supabase.from('lifetime_readings')
           .select('profile_name,created_at')
           .order('created_at', { ascending: false })
-          .limit(2)
+          .limit(2),
+        identity
       )
       for (const r of (lData ?? []) as any[])
         all.push({ icon: '🌊', title: `${r.profile_name || ''} · 평생운세`, meta: '대운·세운 흐름', ts: new Date(r.created_at).getTime() })
 
       // 꿈해몽
       try {
-        const { data: dData } = await applyFilter(
+        const { data: dData } = await applyUserFilter(
           supabase.from('dream_records')
             .select('overall_sentiment,created_at')
             .order('created_at', { ascending: false })
-            .limit(1)
+            .limit(1),
+          identity
         )
         for (const r of (dData ?? []) as any[])
           all.push({ icon: '💭', title: '꿈해몽', meta: r.overall_sentiment || '꿈 해석', ts: new Date(r.created_at).getTime() })
@@ -507,13 +503,14 @@ export default function HomeScreen({ forceOnboarding = false }: { forceOnboardin
     const check = async () => {
       try {
         if (!supabase) { setLoading(false); return }
-        const deviceId = getDeviceId()
-        const { data } = await supabase
-          .from('profiles')
-          .select('id,name,is_primary')
-          .eq('device_id', deviceId)
-          .order('created_at', { ascending: true })
-          .limit(5)
+        const identity = await getCurrentIdentity()
+        const { data } = await applyUserFilter(
+          supabase.from('profiles')
+            .select('id,name,is_primary')
+            .order('created_at', { ascending: true })
+            .limit(5),
+          identity
+        )
 
         if (data && data.length > 0) {
           const primary = (data as Profile[]).find(p => p.is_primary) ?? data[0] as Profile

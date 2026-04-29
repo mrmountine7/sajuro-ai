@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
-import { getDeviceId } from './device-id'
+import { getCurrentIdentity, applyUserFilter } from './user-filter'
 
 /* ─── 기본사주 없을 때 표시할 모달 ─── */
 function NoPrimaryModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
@@ -84,12 +84,11 @@ export function ProfileGuardProvider({ children }: { children: React.ReactNode }
   const checkPrimary = useCallback(async () => {
     try {
       if (!supabase) { setHasPrimary(false); return }
-      const { data } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('device_id', getDeviceId())
-        .eq('is_primary', true)
-        .limit(1)
+      const identity = await getCurrentIdentity()
+      const { data } = await applyUserFilter(
+        supabase.from('profiles').select('id').eq('is_primary', true).limit(1),
+        identity
+      )
       setHasPrimary(!!(data && data.length > 0))
     } catch {
       setHasPrimary(false)

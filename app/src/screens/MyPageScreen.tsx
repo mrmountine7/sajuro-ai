@@ -11,9 +11,9 @@ import {
 } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
-import { getDeviceId } from '@/lib/device-id'
 import { getDailyFortune, getDayPillarLabel, type DailyFortune } from '@/lib/daily-fortune'
 import { signInWithKakao, signOut, getUser, getKakaoDisplayName, getKakaoAvatar } from '@/lib/auth'
+import { getCurrentIdentity, applyUserFilter, applyDeviceFilter } from '@/lib/user-filter'
 import type { User } from '@supabase/supabase-js'
 
 interface MenuItem {
@@ -110,13 +110,7 @@ export default function MyPageScreen() {
   useEffect(() => {
     async function loadStats() {
       if (!supabase) return
-      const deviceId = getDeviceId()
-      const userId = kakaoUser?.id
-
-      // device_id 또는 user_id 기반 필터 헬퍼
-      const applyFilter = (q: any) => userId
-        ? q.or(`device_id.eq.${deviceId},user_id.eq.${userId}`)
-        : q.eq('device_id', deviceId)
+      const identity = await getCurrentIdentity()
 
       try {
         // 병렬로 모든 통계 조회
@@ -125,18 +119,18 @@ export default function MyPageScreen() {
           qaRes, lifetimeQaRes, fortuneQaRes, compatQaRes,
           favRes,
         ] = await Promise.all([
-          applyFilter(supabase.from('precision_analyses').select('id,created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1)),
-          applyFilter(supabase.from('dream_records').select('id,created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1)),
-          applyFilter(supabase.from('lifetime_readings').select('id,created_at').order('created_at', { ascending: false }).limit(1)),
-          applyFilter(supabase.from('fortune_readings').select('id,created_at').order('created_at', { ascending: false }).limit(1)),
-          applyFilter(supabase.from('compatibility_results').select('id,created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1)),
-          // Q&A 건수
-          supabase.from('precision_qa').select('id', { count: 'exact', head: true }).eq('device_id', deviceId),
-          supabase.from('lifetime_qa').select('id', { count: 'exact', head: true }).eq('device_id', deviceId),
-          supabase.from('fortune_qa').select('id', { count: 'exact', head: true }).eq('device_id', deviceId),
-          supabase.from('compatibility_qa').select('id', { count: 'exact', head: true }).eq('device_id', deviceId),
+          applyUserFilter(supabase.from('precision_analyses').select('id,created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1), identity),
+          applyUserFilter(supabase.from('dream_records').select('id,created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1), identity),
+          applyUserFilter(supabase.from('lifetime_readings').select('id,created_at').order('created_at', { ascending: false }).limit(1), identity),
+          applyUserFilter(supabase.from('fortune_readings').select('id,created_at').order('created_at', { ascending: false }).limit(1), identity),
+          applyUserFilter(supabase.from('compatibility_results').select('id,created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1), identity),
+          // Q&A 건수 — device_id 전용 테이블
+          applyDeviceFilter(supabase.from('precision_qa').select('id', { count: 'exact', head: true }), identity),
+          applyDeviceFilter(supabase.from('lifetime_qa').select('id', { count: 'exact', head: true }), identity),
+          applyDeviceFilter(supabase.from('fortune_qa').select('id', { count: 'exact', head: true }), identity),
+          applyDeviceFilter(supabase.from('compatibility_qa').select('id', { count: 'exact', head: true }), identity),
           // 즐겨찾기 프로필 수
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('device_id', deviceId).eq('is_favorite', true),
+          applyUserFilter(supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_favorite', true), identity),
         ])
 
         const analysisCount =
@@ -189,12 +183,14 @@ export default function MyPageScreen() {
   useEffect(() => {
     async function load() {
       if (!supabase) return
-      const { data } = await supabase
-        .from('profiles')
-        .select('name, birth_year, birth_month, birth_day, birth_hour, calendar_type')
-        .eq('device_id', getDeviceId())
-        .eq('is_primary', true)
-        .single()
+      const identity = await getCurrentIdentity()
+      const { data } = await applyUserFilter(
+        supabase.from('profiles')
+          .select('name, birth_year, birth_month, birth_day, birth_hour, calendar_type')
+          .eq('is_primary', true)
+          .limit(1),
+        identity
+      ).then((r: any) => ({ data: r.data?.[0] ?? null }))
       if (data) {
         const p = data as PrimaryProfile
         setProfile(p)

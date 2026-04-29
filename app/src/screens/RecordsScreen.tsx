@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
-import { getDeviceId } from '@/lib/device-id'
-import { getUser } from '@/lib/auth'
+import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
 
 /* ─── 타입 ─── */
 interface PrecisionRecord {
@@ -349,8 +348,7 @@ export default function RecordsScreen() {
       setLoading(true)
       try {
         if (!supabase) return
-        const kakaoUser = await getUser()
-        const deviceId = getDeviceId()
+        const identity = await getCurrentIdentity()
 
         // 꿈해몽 — localStorage 우선, Supabase 보조
         const localDreams: DreamRecord[] = (() => {
@@ -359,12 +357,12 @@ export default function RecordsScreen() {
 
         let remoteDreams: DreamRecord[] = []
         try {
-          let dq = supabase
-            .from('dream_records')
-            .select('id,dream_date,dream_text,overall_sentiment,overall_summary,main_interpretation,domains,todays_advice,lucky_color,detected_symbols,created_at')
-            .order('created_at', { ascending: false }).limit(30)
-          dq = kakaoUser?.id ? dq.or(`device_id.eq.${deviceId},user_id.eq.${kakaoUser.id}`) : dq.eq('device_id', deviceId)
-          const { data: dData } = await dq
+          const { data: dData } = await applyUserFilter(
+            supabase.from('dream_records')
+              .select('id,dream_date,dream_text,overall_sentiment,overall_summary,main_interpretation,domains,todays_advice,lucky_color,detected_symbols,created_at')
+              .order('created_at', { ascending: false }).limit(30),
+            identity
+          )
           if (dData) remoteDreams = dData as DreamRecord[]
         } catch { /* Supabase 테이블 없으면 무시 */ }
 
@@ -378,12 +376,12 @@ export default function RecordsScreen() {
         setDreamRecords(merged)
 
         // precision_analyses — 결혼궁합과 정밀분석 분리
-        let pq = supabase
-          .from('precision_analyses')
-          .select('id,profile_name,saju_summary,sections,selected_items,created_at')
-          .order('created_at', { ascending: false }).limit(50)
-        pq = kakaoUser?.id ? pq.or(`device_id.eq.${deviceId},user_id.eq.${kakaoUser.id}`) : pq.eq('device_id', deviceId)
-        const { data: pData } = await pq
+        const { data: pData } = await applyUserFilter(
+          supabase.from('precision_analyses')
+            .select('id,profile_name,saju_summary,sections,selected_items,created_at')
+            .order('created_at', { ascending: false }).limit(50),
+          identity
+        )
         if (pData) {
           const marriage: MarriageRecord[] = []
           const otherCompat: MarriageRecord[] = []
@@ -399,12 +397,12 @@ export default function RecordsScreen() {
         }
 
         // 평생운세
-        let lq = supabase
-          .from('lifetime_readings')
-          .select('id,profile_name,overall_score,overall_summary,sections,created_at')
-          .order('created_at', { ascending: false }).limit(20)
-        lq = kakaoUser?.id ? lq.or(`device_id.eq.${deviceId},user_id.eq.${kakaoUser.id}`) : lq.eq('device_id', deviceId)
-        const { data: lData } = await lq
+        const { data: lData } = await applyUserFilter(
+          supabase.from('lifetime_readings')
+            .select('id,profile_name,overall_score,overall_summary,sections,created_at')
+            .order('created_at', { ascending: false }).limit(20),
+          identity
+        )
         if (lData) setLifetimeRecords(lData as LifetimeRecord[])
 
         // 연인궁합 — localStorage 우선, Supabase 보조
@@ -414,12 +412,12 @@ export default function RecordsScreen() {
 
         let remoteCompat: CompatRecord[] = []
         try {
-          let cq = supabase
-            .from('compatibility_results')
-            .select('id,result,created_at')
-            .order('created_at', { ascending: false }).limit(30)
-          cq = kakaoUser?.id ? cq.or(`device_id.eq.${deviceId},user_id.eq.${kakaoUser.id}`) : cq.eq('device_id', deviceId)
-          const { data: cData } = await cq
+          const { data: cData } = await applyUserFilter(
+            supabase.from('compatibility_results')
+              .select('id,result,created_at')
+              .order('created_at', { ascending: false }).limit(30),
+            identity
+          )
           if (cData) remoteCompat = cData as CompatRecord[]
         } catch { /* 테이블 없으면 무시 */ }
 
