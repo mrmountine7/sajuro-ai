@@ -233,6 +233,21 @@ export default function NameReadingScreen() {
       const data = await res.json()
       setResult(data)
       setOpenGrids(new Set(['won']))
+
+      // 분석기록 저장 (localStorage)
+      try {
+        const record = {
+          id: `name_${Date.now()}`,
+          full_name: data.full_name ?? '',
+          full_hanja: data.full_hanja ?? '',
+          total_strokes: data.total_strokes ?? 0,
+          score: data.llm?.score ?? 0,
+          name_reading: data.llm?.name_reading ?? '',
+          created_at: new Date().toISOString(),
+        }
+        const prev = JSON.parse(localStorage.getItem('name_readings_local') || '[]')
+        localStorage.setItem('name_readings_local', JSON.stringify([record, ...prev].slice(0, 50)))
+      } catch { /* 저장 실패 무시 */ }
     } catch (e: any) {
       setError(e.message || '분석 오류')
     } finally {

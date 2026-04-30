@@ -52,6 +52,16 @@ interface DreamRecord {
   created_at: string
 }
 
+interface NameRecord {
+  id: string
+  full_name: string
+  full_hanja: string
+  total_strokes: number
+  score: number
+  name_reading: string
+  created_at: string
+}
+
 /* ─── 상수 ─── */
 const SENTIMENT_COLORS: Record<string, { bg: string; color: string }> = {
   '대길': { bg: '#ECFDF5', color: '#059669' },
@@ -63,11 +73,41 @@ const SENTIMENT_COLORS: Record<string, { bg: string; color: string }> = {
 }
 const SC_DEFAULT = { bg: '#F1F5F9', color: '#64748B' }
 
-const filters = ['전체', '평생운세', '정밀분석', '꿈해몽', '연인/결혼궁합', '기타궁합', '저장한 결과']
+const filters = ['전체', '평생운세', '정밀분석', '꿈해몽', '이름풀이', '연인/결혼궁합', '기타궁합', '저장한 결과']
 
 /* ─── 날짜 포맷 ─── */
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+/* ─── 이름풀이 카드 ─── */
+function NameCard({ r }: { r: NameRecord }) {
+  const scoreColor = r.score >= 80 ? '#059669' : r.score >= 60 ? '#D97706' : '#DC2626'
+  return (
+    <div style={{ padding: '14px 16px', borderRadius: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-1)', marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 20, fontWeight: 900, color: '#2563EB' }}>✍️</span>
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{r.full_name}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{r.full_hanja} · 총 {r.total_strokes}획</div>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: scoreColor }}>{r.score}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>종합점수</div>
+        </div>
+      </div>
+      {r.name_reading && (
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, padding: '8px 10px', borderRadius: 8, background: 'var(--bg-surface-2)' }}>
+          {r.name_reading.slice(0, 80)}{r.name_reading.length > 80 ? '...' : ''}
+        </div>
+      )}
+      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right' }}>{fmtDate(r.created_at)}</div>
+    </div>
+  )
 }
 
 /* ─── 빈 상태 ─── */
@@ -341,6 +381,7 @@ export default function RecordsScreen() {
   const [otherCompatRecords, setOtherCompatRecords] = useState<MarriageRecord[]>([])
   const [lifetimeRecords, setLifetimeRecords] = useState<LifetimeRecord[]>([])
   const [compatRecords, setCompatRecords] = useState<CompatRecord[]>([])
+  const [nameRecords, setNameRecords] = useState<NameRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -428,6 +469,12 @@ export default function RecordsScreen() {
           return true
         }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         setCompatRecords(mergedCompat)
+
+        // 이름풀이 — localStorage
+        try {
+          const localNames: NameRecord[] = JSON.parse(localStorage.getItem('name_readings_local') || '[]')
+          setNameRecords(localNames)
+        } catch { /* 무시 */ }
       } catch (e) {
         console.warn('[RecordsScreen]', e)
       } finally {
@@ -440,6 +487,7 @@ export default function RecordsScreen() {
   const showLifetime  = active === '전체' || active === '평생운세'
   const showPrecision = active === '전체' || active === '정밀분석'
   const showDream     = active === '전체' || active === '꿈해몽'
+  const showName      = active === '전체' || active === '이름풀이'
   const showMarriage     = active === '전체' || active === '연인/결혼궁합'
   const showCompat       = active === '전체' || active === '연인/결혼궁합'
   const showOtherCompat  = active === '전체' || active === '기타궁합'
@@ -485,6 +533,7 @@ export default function RecordsScreen() {
 
   const hasPrecision    = precisionRecords.length > 0
   const hasDream        = dreamRecords.length > 0
+  const hasName         = nameRecords.length > 0
   const hasMarriage     = marriageRecords.length > 0
   const hasLifetime     = lifetimeRecords.length > 0
   const hasCompat       = compatRecords.length > 0
@@ -502,11 +551,12 @@ export default function RecordsScreen() {
     ...precisionRecords.map(r => ({ ...r, _type: 'precision' as const })),
     ...lifetimeRecords.map(r => ({ ...r, _type: 'lifetime' as const })),
     ...dreamRecords.map(r => ({ ...r, _type: 'dream' as const })),
+    ...nameRecords.map(r => ({ ...r, _type: 'name' as const })),
     ...marriageRecords.map(r => ({ ...r, _type: 'marriage' as const })),
     ...compatRecords.map(r => ({ ...r, _type: 'compat' as const })),
     ...otherCompatRecords.map(r => ({ ...r, _type: 'otherCompat' as const })),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-  [precisionRecords, lifetimeRecords, dreamRecords, marriageRecords, compatRecords, otherCompatRecords])
+  [precisionRecords, lifetimeRecords, dreamRecords, nameRecords, marriageRecords, compatRecords, otherCompatRecords])
 
   const totalRecords = allRecordsSorted.length
 
@@ -554,6 +604,7 @@ export default function RecordsScreen() {
           if (r._type === 'precision')   return <PrecisionCard   key={r.id} r={r as any} nav={nav} />
           if (r._type === 'lifetime')    return <LifetimeCard    key={r.id} r={r as any} nav={nav} />
           if (r._type === 'dream')       return <DreamCard       key={r.id} r={r as any} />
+          if (r._type === 'name')        return <NameCard        key={r.id} r={r as any} />
           if (r._type === 'marriage')    return <MarriageCard    key={r.id} r={r as any} nav={nav} />
           if (r._type === 'compat')      return <CompatCard      key={r.id} r={r as any} nav={nav} />
           if (r._type === 'otherCompat') return <MarriageCard    key={r.id} r={r as any} nav={nav} />
@@ -594,6 +645,14 @@ export default function RecordsScreen() {
         ))}
         {!loading && active === '꿈해몽' && !hasDream && (
           <EmptyState emoji="🌙" title="꿈해몽 기록이 없습니다" desc="꿈을 기록하고 해몽을 받아보세요" label="꿈해몽 시작하기" path="/analysis/dream" />
+        )}
+
+        {/* ─── 이름풀이 탭 ─── */}
+        {!loading && showName && active === '이름풀이' && nameRecords.map(r => (
+          <NameCard key={r.id} r={r} />
+        ))}
+        {!loading && active === '이름풀이' && !hasName && (
+          <EmptyState emoji="✍️" title="이름풀이 기록이 없습니다" desc="이름풀이 분석을 시작해보세요" label="이름풀이 시작하기" path="/analysis/name" />
         )}
 
         {/* ─── 연인/결혼궁합 탭: 날짜 역순 통합 ─── */}

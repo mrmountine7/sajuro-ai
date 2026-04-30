@@ -33,7 +33,7 @@ export const categoryLabels: Record<string, string> = {
 }
 
 export const badgeConfig: Record<string, { label: string; color: string }> = {
-  free: { label: '현재무료', color: '#DC2626' },
-  'free-now': { label: '현재무료', color: '#DC2626' },
+  free: { label: '무료', color: '#6366F1' },
+  'free-now': { label: '현재무료', color: '#059669' },
   'coming-soon': { label: '준비중', color: '#9CA3AF' },
 }
