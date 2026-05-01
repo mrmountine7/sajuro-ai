@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from typing import Optional
 import asyncio
@@ -48,7 +49,82 @@ SIPSIN_DESC = {
     '정인': '배려심 깊고 학구적인 교육형',
 }
 
-app = FastAPI(title="sajuro.ai API", version="1.0.0")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_REF = "lszgmmdvpldazzstlewf"
+
+MIGRATION_SQL = """
+CREATE TABLE IF NOT EXISTS dream_records (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id text,
+    device_id text NOT NULL DEFAULT '',
+    dream_date date,
+    dream_text text,
+    experience_text text,
+    overall_sentiment text,
+    overall_summary text,
+    main_interpretation text,
+    domains jsonb,
+    todays_advice text,
+    lucky_color text,
+    lucky_numbers jsonb,
+    literature_refs jsonb,
+    detected_symbols jsonb,
+    saju_context jsonb,
+    created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS name_readings (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id text,
+    device_id text NOT NULL DEFAULT '',
+    full_name text,
+    full_hanja text,
+    total_strokes integer,
+    score integer,
+    name_reading text,
+    created_at timestamptz DEFAULT now()
+);
+"""
+
+async def run_migrations():
+    if not SUPABASE_SERVICE_KEY:
+        print("[Migration] SUPABASE_SERVICE_KEY not set, skipping")
+        return
+    try:
+        import asyncpg
+        pooler_regions = [
+            "aws-0-ap-southeast-1",
+            "aws-0-us-east-1",
+            "aws-0-eu-west-1",
+        ]
+        conn = None
+        for region in pooler_regions:
+            try:
+                conn_str = f"postgresql://postgres.{SUPABASE_REF}:{SUPABASE_SERVICE_KEY}@{region}.pooler.supabase.com:6543/postgres"
+                conn = await asyncio.wait_for(asyncpg.connect(conn_str), timeout=8)
+                print(f"[Migration] Connected via {region}")
+                break
+            except Exception as e:
+                print(f"[Migration] {region} failed: {e}")
+
+        if conn:
+            for stmt in [s.strip() for s in MIGRATION_SQL.split(';') if s.strip()]:
+                await conn.execute(stmt)
+            await conn.close()
+            print("[Migration] Tables ensured OK")
+        else:
+            print("[Migration] All connections failed, skipping")
+    except Exception as e:
+        print(f"[Migration] Error: {e}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await run_migrations()
+    yield
+
+
+app = FastAPI(title="sajuro.ai API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
