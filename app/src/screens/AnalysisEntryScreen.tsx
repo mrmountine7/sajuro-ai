@@ -210,15 +210,19 @@ function profileToRequest(p: Profile) {
 function ProfileSelector({ profiles, selected, onSelect, label }: {
   profiles: ProfileWithGroup[]; selected: string; onSelect: (id: string) => void; label: string
 }) {
-  // 그룹 탭 계산
-  const groups = ['전체', ...Array.from(new Set(
+  // 그룹 탭 계산 — 사주 있는 그룹만, 전체는 맨 오른쪽
+  const nonEmptyGroups = Array.from(new Set(
     profiles.map(p => p.group_name).filter(Boolean)
-  )) as string[], ...(profiles.some(p => !p.group_name && !p.is_primary) ? ['미분류'] : [])]
+  )) as string[]
+  const hasUngrouped = profiles.some(p => !p.group_name && !p.is_primary)
+  const groups = [...nonEmptyGroups, ...(hasUngrouped ? ['미분류'] : []), '전체']
 
-  const [activeGroup, setActiveGroup] = useState('전체')
+  // '나' 그룹이 있으면 기본 선택, 없으면 첫 번째 그룹
+  const defaultGroup = groups.includes('나') ? '나' : (groups[0] ?? '전체')
+  const [activeGroup, setActiveGroup] = useState(defaultGroup)
 
   const filtered = activeGroup === '전체' ? profiles
-    : activeGroup === '미분류' ? profiles.filter(p => !p.group_name && !p.is_primary)
+    : activeGroup === '미분류' ? profiles.filter(p => !p.group_name)
     : profiles.filter(p => p.group_name === activeGroup)
 
   return (
