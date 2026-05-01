@@ -5,6 +5,8 @@ import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
 import { getDeviceId } from '@/lib/device-id'
 import { getUser } from '@/lib/auth'
+import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
+import ProfileGroupSelector from '@/components/ProfileGroupSelector'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -136,6 +138,42 @@ function GridCard({ label, info, open, onToggle }: { label: string; info: GridIn
 export default function NameReadingScreen() {
   const nav = useNavigate()
 
+  /* 프로필 선택 */
+  const [profiles, setProfiles] = useState<{ id: string; name: string; birth_year: number; group_name: string | null; is_primary: boolean }[]>([])
+  const [selectedProfileId, setSelectedProfileId] = useState('')
+
+  useEffect(() => {
+    if (!supabase) return
+    getCurrentIdentity().then(identity => {
+      applyUserFilter(
+        supabase!.from('profiles')
+          .select('id, name, birth_year, group_name, is_primary')
+          .order('is_primary', { ascending: false })
+          .order('created_at', { ascending: true }),
+        identity
+      ).then(({ data }) => {
+        if (data && data.length > 0) {
+          setProfiles(data as any)
+          const primary = (data as any[]).find(p => p.is_primary) || data[0]
+          setSelectedProfileId((primary as any).id)
+        }
+      })
+    })
+  }, [])
+
+  /* 프로필 선택 — handleGivenChange가 아래 정의되므로 state setter만 여기서 처리 */
+  const [pendingGiven, setPendingGiven] = useState<string | null>(null)
+
+  const handleProfileSelect = useCallback((id: string) => {
+    setSelectedProfileId(id)
+    const p = profiles.find(x => x.id === id)
+    if (!p) return
+    const surname = p.name.slice(0, 1)
+    const given   = p.name.slice(1)
+    setSurnameHangul(surname)
+    if (given) setPendingGiven(given)
+  }, [profiles])
+
   /* 입력 상태 */
   const [surnameHangul, setSurnameHangul] = useState('')
   const [surnameOptions, setSurnameOptions] = useState<SurnameOption[]>([])
@@ -188,6 +226,13 @@ export default function NameReadingScreen() {
     setGivenChars(chars)
     setResult(null)
   }, [])
+
+  /* 프로필 선택으로 인한 pendingGiven 처리 */
+  useEffect(() => {
+    if (pendingGiven === null) return
+    handleGivenChange(pendingGiven)
+    setPendingGiven(null)
+  }, [pendingGiven, handleGivenChange])
 
   // 수동입력 오행 계산 (수리오행)
   function calcElement(strokes: number): string {
@@ -292,8 +337,27 @@ export default function NameReadingScreen() {
       <Header title="이름풀이" showBack onBack={() => nav(-1)} rightActions={['fontSize']} />
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
 
+        {/* ─── 사주 선택 ─── */}
+        {profiles.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <ProfileGroupSelector
+              profiles={profiles.map(p => ({
+                id: p.id,
+                name: p.name,
+                subtitle: '선택하면 이름이 자동 입력됩니다',
+                birth_year: p.birth_year,
+                group_name: p.group_name,
+                is_primary: p.is_primary,
+              }))}
+              selected={selectedProfileId}
+              onSelect={handleProfileSelect}
+              label="사주 선택 (이름 자동 입력)"
+            />
+          </div>
+        )}
+
         {/* ─── 입력 카드 ─── */}
-        <div style={{ margin: '14px 20px 16px', padding: '18px 16px', borderRadius: 16, background: 'var(--bg-surface)', border: `1.5px solid ${N.border}`, overflow: 'hidden', boxSizing: 'border-box' }}>
+        <div style={{ margin: '0 20px 16px', padding: '18px 16px', borderRadius: 16, background: 'var(--bg-surface)', border: `1.5px solid ${N.border}`, overflow: 'hidden', boxSizing: 'border-box' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: N.primary, marginBottom: 14 }}>이름 입력</div>
 
           {/* 성씨 입력 */}
