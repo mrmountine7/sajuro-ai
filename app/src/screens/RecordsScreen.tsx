@@ -320,17 +320,24 @@ function CompatCard({ r, nav }: { r: CompatRecord; nav: ReturnType<typeof useNav
 
 /* ─── 꿈해몽 카드 ─── */
 function DreamCard({ r }: { r: DreamRecord }) {
+  const [expanded, setExpanded] = useState(false)
   const sc = SENTIMENT_COLORS[r.overall_sentiment] || SC_DEFAULT
 
   return (
-    <div style={{ margin: '0 20px 14px', padding: 16, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-1)' }}>
+    <div
+      onClick={() => setExpanded(v => !v)}
+      style={{ margin: '0 20px 14px', padding: 16, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-1)', cursor: 'pointer' }}
+    >
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🌙 꿈해몽</span>
           <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: sc.bg, color: sc.color }}>{r.overall_sentiment}</span>
         </div>
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+          <span style={{ fontSize: 13, color: 'var(--text-tertiary)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▾</span>
+        </div>
       </div>
 
       {/* 감지 상징 */}
@@ -342,31 +349,75 @@ function DreamCard({ r }: { r: DreamRecord }) {
         </div>
       )}
 
-      {/* 분석 핵심 — highlight 역할 */}
+      {/* 분석 핵심 */}
       <div style={{ padding: '8px 12px', borderRadius: 10, background: '#FFF8F0', border: '1px solid #FFE4CC', marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: '#C05600', lineHeight: 1.5 }}>{r.overall_summary}</span>
       </div>
 
-      {/* Q&A 핵심 — qa_summary 역할 */}
-      {r.main_interpretation && (
-        <div style={{ padding: '8px 12px', borderRadius: 10, background: '#F0F4FF', border: '1px solid #D0DCFF', marginBottom: 6 }}>
-          <span style={{ fontSize: 12, color: '#3B5998', lineHeight: 1.6 }}>
-            {r.main_interpretation.slice(0, 80)}{r.main_interpretation.length > 80 ? '...' : ''}
-          </span>
-        </div>
+      {/* 접힌 상태: 미리보기 */}
+      {!expanded && (
+        <>
+          {r.main_interpretation && (
+            <div style={{ padding: '8px 12px', borderRadius: 10, background: '#F0F4FF', border: '1px solid #D0DCFF', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: '#3B5998', lineHeight: 1.6 }}>
+                {r.main_interpretation.slice(0, 80)}{r.main_interpretation.length > 80 ? '...' : ''}
+              </span>
+            </div>
+          )}
+          <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+            "{r.dream_text.slice(0, 50)}{r.dream_text.length > 50 ? '...' : ''}"
+          </div>
+        </>
       )}
 
-      {/* 사주가 핵심 전달 — expert_note 역할 */}
-      {r.todays_advice && (
-        <div style={{ padding: '8px 12px', borderRadius: 10, background: '#F0FFF4', border: '1px solid #C6F6D5', marginBottom: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#276749', lineHeight: 1.5 }}>✨ {r.todays_advice}</span>
+      {/* 펼친 상태: 전체 내용 */}
+      {expanded && (
+        <div onClick={e => e.stopPropagation()}>
+          {/* 꿈 전문 */}
+          <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--bg-surface-2)', border: '1px solid var(--border-1)', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 4 }}>꿈 내용</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>"{r.dream_text}"</div>
+          </div>
+
+          {/* 해석 전문 */}
+          {r.main_interpretation && (
+            <div style={{ padding: '10px 12px', borderRadius: 10, background: '#F0F4FF', border: '1px solid #D0DCFF', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#3B5998', marginBottom: 4 }}>사주 해석</div>
+              <div style={{ fontSize: 13, color: '#3B5998', lineHeight: 1.7 }}>{r.main_interpretation}</div>
+            </div>
+          )}
+
+          {/* 영역별 운세 */}
+          {r.domains?.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>영역별 해석</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {r.domains.map((d, i) => (
+                  <div key={i} style={{ padding: '8px 12px', borderRadius: 10, background: 'var(--bg-surface-2)', border: '1px solid var(--border-1)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{d.name}</span>
+                      <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: (SENTIMENT_COLORS[d.rating] || SC_DEFAULT).bg, color: (SENTIMENT_COLORS[d.rating] || SC_DEFAULT).color, fontWeight: 700 }}>{d.rating}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{d.summary}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 오늘의 조언 */}
+          {r.todays_advice && (
+            <div style={{ padding: '8px 12px', borderRadius: 10, background: '#F0FFF4', border: '1px solid #C6F6D5', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#276749', lineHeight: 1.5 }}>✨ {r.todays_advice}</span>
+            </div>
+          )}
+
+          {/* 행운의 색 */}
+          {r.lucky_color && (
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right' }}>🍀 행운의 색: {r.lucky_color}</div>
+          )}
         </div>
       )}
-
-      {/* 꿈 내용 미리보기 */}
-      <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-        "{r.dream_text.slice(0, 50)}{r.dream_text.length > 50 ? '...' : ''}"
-      </div>
     </div>
   )
 }
