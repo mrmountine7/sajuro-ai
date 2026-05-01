@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
+import { getZodiacData } from '@/lib/zodiac-icons'
 
 export interface ProfileItem {
   id: string
@@ -7,6 +8,36 @@ export interface ProfileItem {
   subtitle?: string
   is_primary?: boolean
   group_name?: string | null
+  birth_year?: number
+}
+
+function getKoreanAge(year: number) {
+  return new Date().getFullYear() - year + 1
+}
+
+function ZodiacAvatar({ birthYear, size = 44 }: { birthYear: number; size?: number }) {
+  const z = getZodiacData(birthYear)
+  const labelSize = Math.round(size * 0.185)
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
+      background: z.bg, border: `1.5px solid ${z.color}55`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 0,
+    }}>
+      <img
+        src={z.img}
+        alt={z.name}
+        style={{ width: size * 0.76, height: size * 0.76, objectFit: 'contain' }}
+      />
+      <span style={{
+        fontSize: labelSize, fontWeight: 700, color: z.color,
+        lineHeight: 1, letterSpacing: '-0.02em', marginTop: -1,
+      }}>
+        {z.name}
+      </span>
+    </div>
+  )
 }
 
 interface Props {
@@ -78,36 +109,51 @@ export default function ProfileGroupSelector({ profiles, selected, onSelect, lab
           </div>
         ) : filtered.map(p => {
           const active = selected === p.id
+          const z = p.birth_year ? getZodiacData(p.birth_year) : null
+          const age = p.birth_year ? getKoreanAge(p.birth_year) : null
           return (
             <button key={p.id} onClick={() => onSelect(p.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
               borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
               border: active ? '2px solid var(--border-accent)' : '1px solid var(--border-1)',
               textAlign: 'left', width: '100%',
             }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 'var(--radius-full)',
-                background: active ? 'var(--bg-accent)' : 'var(--bg-surface-3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16, fontWeight: 600, flexShrink: 0,
-                color: active ? '#1F2937' : 'var(--text-secondary)',
-              }}>
-                {p.name[0]}
-              </div>
+              {/* 아바타 */}
+              {p.birth_year ? (
+                <ZodiacAvatar birthYear={p.birth_year} size={44} />
+              ) : (
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                  background: active ? 'var(--bg-accent)' : 'var(--bg-surface-3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16, fontWeight: 600,
+                  color: active ? '#1F2937' : 'var(--text-secondary)',
+                }}>
+                  {p.name[0]}
+                </div>
+              )}
+
+              {/* 텍스트 */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{p.name}</span>
+                  {age !== null && (
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400 }}>{age}세</span>
+                  )}
                   {p.is_primary && (
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: '#FFF8DD', color: '#C58D00' }}>기본</span>
                   )}
-                  {p.group_name && (
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: 'var(--bg-surface-3)', color: 'var(--text-tertiary)' }}>{p.group_name}</span>
+                  {p.group_name && z && (
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 'var(--radius-full)', background: z.bg, color: z.color, border: `1px solid ${z.color}44` }}>
+                      {p.group_name}
+                    </span>
                   )}
                 </div>
                 {p.subtitle && (
                   <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{p.subtitle}</div>
                 )}
               </div>
+
               {active && <Check size={18} style={{ color: 'var(--text-accent)', flexShrink: 0 }} />}
             </button>
           )

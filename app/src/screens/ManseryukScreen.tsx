@@ -464,6 +464,7 @@ export default function ManseryukScreen() {
               subtitle: `${p.birth_year}/${String(p.birth_month).padStart(2,'0')}/${String(p.birth_day).padStart(2,'0')} · ${p.gender === 'male' ? '남' : '여'}`,
               is_primary: p.is_primary,
               group_name: p.group_name,
+              birth_year: p.birth_year,
             }))}
             selected={selectedProfileId ?? ''}
             onSelect={setSelectedProfileId}

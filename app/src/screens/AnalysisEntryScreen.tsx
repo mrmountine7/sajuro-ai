@@ -215,6 +215,7 @@ function toProfileItems(profiles: ProfileWithGroup[]) {
     subtitle: `${p.birth_date.replace(/-/g, '/')} ${p.birth_time} (${p.is_lunar ? '음' : '양'})`,
     is_primary: p.is_primary,
     group_name: p.group_name,
+    birth_year: Number(p.birth_date.split('-')[0]),
   }))
 }
 
