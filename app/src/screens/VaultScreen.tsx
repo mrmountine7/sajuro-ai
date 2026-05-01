@@ -508,10 +508,11 @@ export default function VaultScreen() {
           {primary ? (() => {
             const page = getKoreanAge(primary.birth_year)
             return (
-            <div className="s-profile-card" style={{ margin: '16px 20px' }}>
+            <div className="s-profile-card" onClick={() => nav(`/add-profile?id=${primary.id}`)}
+              style={{ margin: '16px 20px', cursor: 'pointer' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <ZodiacAvatar birthYear={primary.birth_year} size={56} />
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                     <span style={{ fontSize: 17, fontWeight: 700 }}>{primary.name}</span>
                     <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{page}세</span>
@@ -521,9 +522,13 @@ export default function VaultScreen() {
                   </div>
                   <span style={{ display: 'inline-block', marginTop: 6, padding: '2px 10px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, background: '#FFF8DD', color: '#C58D00' }}>기본 사주</span>
                 </div>
+                <Pencil size={16} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                <button onClick={() => setAnalysisTarget({ name: primary.name, id: primary.id })} style={{ flex: 1, padding: '8px 0', borderRadius: 12, fontSize: 12, fontWeight: 600, textAlign: 'center', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-1)' }}>분석</button>
+                <button onClick={e => { e.stopPropagation(); setAnalysisTarget({ name: primary.name, id: primary.id }) }}
+                  style={{ flex: 1, padding: '8px 0', borderRadius: 12, fontSize: 12, fontWeight: 600, textAlign: 'center', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-1)' }}>
+                  분석
+                </button>
               </div>
             </div>
           )})() : (
