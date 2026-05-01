@@ -214,13 +214,12 @@ export default function DreamScreen() {
         console.warn('[DreamScreen] localStorage 저장 실패:', lsErr)
       }
 
-      // ── Supabase에도 추가 저장 시도 (선택적) ──
+      // ── Supabase precision_analyses 테이블에 저장 (dream 타입) ──
       if (supabase) {
         try {
           const kakaoUser = await getUser()
-          const { error: saveError } = await supabase.from('dream_records').insert({
-            device_id: getDeviceId(),
-            user_id: kakaoUser?.id ?? null,
+          const sectionData = [{
+            type: 'dream',
             dream_date: new Date().toISOString().slice(0, 10),
             dream_text: text,
             experience_text: experienceText || null,
@@ -233,13 +232,21 @@ export default function DreamScreen() {
             lucky_numbers: result.luckyNumbers,
             literature_refs: result.literatureRefs,
             detected_symbols: result.detectedSymbols,
-            saju_context: sajuCtx ?? null,
+          }]
+          const { error: saveError } = await supabase.from('precision_analyses').insert({
+            device_id: getDeviceId(),
+            user_id: kakaoUser?.id ?? null,
+            profile_name: '꿈해몽',
+            saju_context: sajuCtx ? JSON.stringify(sajuCtx) : null,
+            saju_summary: result.overallSummary,
+            sections: JSON.stringify(sectionData),
+            selected_items: JSON.stringify(['dream']),
           })
           if (saveError) {
-            console.warn('[DreamScreen] Supabase 저장 실패 (localStorage로 대체됨):', saveError.message)
+            console.warn('[DreamScreen] Supabase 저장 실패:', saveError.message)
           }
         } catch (saveErr) {
-          console.warn('[DreamScreen] Supabase 저장 예외 (localStorage로 대체됨):', saveErr)
+          console.warn('[DreamScreen] Supabase 저장 예외:', saveErr)
         }
       }
     } catch (e) {

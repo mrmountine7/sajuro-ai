@@ -442,23 +442,68 @@ export default function RecordsScreen() {
         if (!supabase) return
         const identity = await getCurrentIdentity()
 
-        // 꿈해몽 — localStorage 우선, Supabase 보조
+        // 꿈해몽 — localStorage 우선
         const localDreams: DreamRecord[] = (() => {
           try { return JSON.parse(localStorage.getItem('dream_records_local') || '[]') } catch { return [] }
         })()
 
-        let remoteDreams: DreamRecord[] = []
-        try {
-          const { data: dData } = await applyUserFilter(
-            supabase.from('dream_records')
-              .select('id,dream_date,dream_text,overall_sentiment,overall_summary,main_interpretation,domains,todays_advice,lucky_color,detected_symbols,created_at')
-              .order('created_at', { ascending: false }).limit(30),
-            identity
-          )
-          if (dData) remoteDreams = dData as DreamRecord[]
-        } catch { /* Supabase 테이블 없으면 무시 */ }
+        // precision_analyses — 꿈해몽/이름풀이/결혼궁합/정밀분석 분리
+        const { data: pData } = await applyUserFilter(
+          supabase.from('precision_analyses')
+            .select('id,profile_name,saju_summary,sections,selected_items,created_at')
+            .order('created_at', { ascending: false }).limit(100),
+          identity
+        )
 
-        // 중복 제거: id 기준으로 로컬과 원격 합산
+        let remoteDreams: DreamRecord[] = []
+        const remoteNameRecords: NameRecord[] = []
+
+        if (pData) {
+          const marriage: MarriageRecord[] = []
+          const otherCompat: MarriageRecord[] = []
+          const precision: PrecisionRecord[] = []
+          for (const r of pData as any[]) {
+            let sec: any = null
+            try { sec = (JSON.parse(r.sections || '[]') || [])[0] } catch {}
+
+            if (sec?.type === 'dream') {
+              remoteDreams.push({
+                id: r.id,
+                dream_date: sec.dream_date || r.created_at?.slice(0, 10),
+                dream_text: sec.dream_text || '',
+                overall_sentiment: sec.overall_sentiment || '',
+                overall_summary: sec.overall_summary || r.saju_summary || '',
+                main_interpretation: sec.main_interpretation || '',
+                domains: sec.domains || [],
+                todays_advice: sec.todays_advice || '',
+                lucky_color: sec.lucky_color || '',
+                detected_symbols: sec.detected_symbols || [],
+                created_at: r.created_at,
+              })
+            } else if (sec?.type === 'name') {
+              remoteNameRecords.push({
+                id: r.id,
+                full_name: sec.full_name || '',
+                full_hanja: sec.full_hanja || '',
+                total_strokes: sec.total_strokes || 0,
+                score: sec.score || 0,
+                name_reading: sec.name_reading || r.saju_summary || '',
+                created_at: r.created_at,
+              })
+            } else if (r.profile_name?.includes('결혼궁합')) {
+              marriage.push(r as MarriageRecord)
+            } else if (r.profile_name?.includes('궁합')) {
+              otherCompat.push(r as MarriageRecord)
+            } else {
+              precision.push(r as PrecisionRecord)
+            }
+          }
+          setMarriageRecords(marriage)
+          setOtherCompatRecords(otherCompat)
+          setPrecisionRecords(precision)
+        }
+
+        // 꿈해몽: 로컬 + Supabase 중복 제거 병합
         const seenIds = new Set<string>()
         const merged = [...localDreams, ...remoteDreams].filter(r => {
           if (seenIds.has(r.id)) return false
@@ -467,26 +512,17 @@ export default function RecordsScreen() {
         }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         setDreamRecords(merged)
 
-        // precision_analyses — 결혼궁합과 정밀분석 분리
-        const { data: pData } = await applyUserFilter(
-          supabase.from('precision_analyses')
-            .select('id,profile_name,saju_summary,sections,selected_items,created_at')
-            .order('created_at', { ascending: false }).limit(50),
-          identity
-        )
-        if (pData) {
-          const marriage: MarriageRecord[] = []
-          const otherCompat: MarriageRecord[] = []
-          const precision: PrecisionRecord[] = []
-          for (const r of pData as any[]) {
-            if (r.profile_name?.includes('결혼궁합')) marriage.push(r as MarriageRecord)
-            else if (r.profile_name?.includes('궁합')) otherCompat.push(r as MarriageRecord)
-            else precision.push(r as PrecisionRecord)
-          }
-          setMarriageRecords(marriage)
-          setOtherCompatRecords(otherCompat)
-          setPrecisionRecords(precision)
-        }
+        // 이름풀이: 로컬 + Supabase 병합
+        const localNames: NameRecord[] = (() => {
+          try { return JSON.parse(localStorage.getItem('name_readings_local') || '[]') } catch { return [] }
+        })()
+        const seenNameIds = new Set<string>()
+        const mergedNames = [...localNames, ...remoteNameRecords].filter(r => {
+          if (seenNameIds.has(r.id)) return false
+          seenNameIds.add(r.id)
+          return true
+        }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        setNameRecords(mergedNames)
 
         // 평생운세
         const { data: lData } = await applyUserFilter(
@@ -521,11 +557,7 @@ export default function RecordsScreen() {
         }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         setCompatRecords(mergedCompat)
 
-        // 이름풀이 — localStorage
-        try {
-          const localNames: NameRecord[] = JSON.parse(localStorage.getItem('name_readings_local') || '[]')
-          setNameRecords(localNames)
-        } catch { /* 무시 */ }
+        // 이름풀이는 위 precision_analyses 로드 블록에서 처리됨
       } catch (e) {
         console.warn('[RecordsScreen]', e)
       } finally {

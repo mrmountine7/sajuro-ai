@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import Header from '@/components/layout/Header'
+import { supabase } from '@/lib/supabase'
+import { getDeviceId } from '@/lib/device-id'
+import { getUser } from '@/lib/auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -248,6 +251,30 @@ export default function NameReadingScreen() {
         const prev = JSON.parse(localStorage.getItem('name_readings_local') || '[]')
         localStorage.setItem('name_readings_local', JSON.stringify([record, ...prev].slice(0, 50)))
       } catch { /* 저장 실패 무시 */ }
+
+      // Supabase precision_analyses 테이블에 저장 (name 타입)
+      if (supabase) {
+        try {
+          const kakaoUser = await getUser()
+          const sectionData = [{
+            type: 'name',
+            full_name: data.full_name ?? '',
+            full_hanja: data.full_hanja ?? '',
+            total_strokes: data.total_strokes ?? 0,
+            score: data.llm?.score ?? 0,
+            name_reading: data.llm?.name_reading ?? '',
+          }]
+          await supabase.from('precision_analyses').insert({
+            device_id: getDeviceId(),
+            user_id: kakaoUser?.id ?? null,
+            profile_name: '이름풀이_' + (data.full_name ?? ''),
+            saju_context: null,
+            saju_summary: data.llm?.name_reading ?? '',
+            sections: JSON.stringify(sectionData),
+            selected_items: JSON.stringify(['name']),
+          })
+        } catch { /* Supabase 저장 실패 무시 */ }
+      }
     } catch (e: any) {
       setError(e.message || '분석 오류')
     } finally {
