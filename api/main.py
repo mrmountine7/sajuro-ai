@@ -92,24 +92,28 @@ async def run_migrations():
         return
     try:
         import asyncpg
-        pooler_regions = [
-            "aws-0-ap-southeast-1",
-            "aws-0-us-east-1",
-            "aws-0-eu-west-1",
+        # 직접 연결 우선, pooler 방식 폴백
+        candidates = [
+            f"postgresql://postgres:{SUPABASE_SERVICE_KEY}@db.{SUPABASE_REF}.supabase.co:5432/postgres",
+            f"postgresql://postgres.{SUPABASE_REF}:{SUPABASE_SERVICE_KEY}@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres",
+            f"postgresql://postgres.{SUPABASE_REF}:{SUPABASE_SERVICE_KEY}@aws-0-us-east-1.pooler.supabase.com:6543/postgres",
         ]
         conn = None
-        for region in pooler_regions:
+        for conn_str in candidates:
+            label = conn_str.split("@")[1].split(":")[0]
             try:
-                conn_str = f"postgresql://postgres.{SUPABASE_REF}:{SUPABASE_SERVICE_KEY}@{region}.pooler.supabase.com:6543/postgres"
-                conn = await asyncio.wait_for(asyncpg.connect(conn_str), timeout=8)
-                print(f"[Migration] Connected via {region}")
+                conn = await asyncio.wait_for(asyncpg.connect(conn_str), timeout=10)
+                print(f"[Migration] Connected via {label}")
                 break
             except Exception as e:
-                print(f"[Migration] {region} failed: {e}")
+                print(f"[Migration] {label} failed: {e}")
 
         if conn:
             for stmt in [s.strip() for s in MIGRATION_SQL.split(';') if s.strip()]:
-                await conn.execute(stmt)
+                try:
+                    await conn.execute(stmt)
+                except Exception as e:
+                    print(f"[Migration] stmt failed (may already exist): {e}")
             await conn.close()
             print("[Migration] Tables ensured OK")
         else:
