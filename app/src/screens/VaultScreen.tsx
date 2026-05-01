@@ -321,6 +321,7 @@ export default function VaultScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedGroup, setSelectedGroup] = useState('전체')
+  const [groupInitialized, setGroupInitialized] = useState(false)
 
   /* ── 그룹 탭 드래그 스크롤 ── */
   const groupTabRef = useRef<HTMLDivElement>(null)
@@ -413,9 +414,21 @@ export default function VaultScreen() {
   }
 
   useEffect(() => {
+    setGroupInitialized(false)
     fetchProfiles()
     fetchExtraGroups()
   }, [location.key, fetchExtraGroups])
+
+  // 프로필 로드 완료 후 첫 탭(사주가 가장 많은 그룹)을 기본 선택
+  useEffect(() => {
+    if (!loading && !groupInitialized) {
+      const firstTab = [...allManagedGroups, ...(hasUngrouped ? ['미분류'] : [])]
+        .sort((a, b) => memberCount(b) - memberCount(a))[0]
+      setSelectedGroup(firstTab ?? '전체')
+      setGroupInitialized(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, groupInitialized])
 
   /* 그룹 저장 (Supabase + localStorage 캐시) */
   const saveExtraGroups = (groups: string[]) => {
