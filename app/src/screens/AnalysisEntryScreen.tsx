@@ -232,7 +232,11 @@ function ProfileSelector({ profiles, selected, onSelect, label }: {
       {/* 그룹 탭 — 2개 이상일 때만 표시 */}
       {groups.length > 2 && (
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10, paddingBottom: 2 }}>
-          {groups.map(g => (
+          {groups.map(g => {
+            const count = g === '전체' ? profiles.length
+              : g === '미분류' ? profiles.filter(p => !p.group_name).length
+              : profiles.filter(p => p.group_name === g).length
+            return (
             <button key={g} onClick={() => setActiveGroup(g)} style={{
               padding: '5px 12px', borderRadius: 'var(--radius-full)', flexShrink: 0,
               fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
@@ -242,8 +246,12 @@ function ProfileSelector({ profiles, selected, onSelect, label }: {
               transition: 'all 0.15s',
             }}>
               {g}
+              {count > 0 && (
+                <span style={{ marginLeft: 3, fontSize: 11, opacity: 0.75 }}>{count}</span>
+              )}
             </button>
-          ))}
+            )
+          })}
         </div>
       )}
 
