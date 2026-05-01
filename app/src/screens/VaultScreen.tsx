@@ -433,7 +433,11 @@ export default function VaultScreen() {
   const dbGroups    = Array.from(new Set(nonPrimary.map(p => p.group_name).filter(Boolean))) as string[]
   const allManagedGroups = Array.from(new Set([...DEFAULT_GROUPS, ...extraGroups, ...dbGroups]))
   const hasUngrouped = nonPrimary.some(p => !p.group_name)
-  const tabs = ['전체', ...allManagedGroups, ...(hasUngrouped ? ['미분류'] : [])]
+  const tabs = [
+    ...[...allManagedGroups, ...(hasUngrouped ? ['미분류'] : [])]
+      .sort((a, b) => memberCount(b) - memberCount(a)),
+    '전체',
+  ]
 
   const memberCount = (g: string) =>
     g === '미분류' ? nonPrimary.filter(p => !p.group_name).length
