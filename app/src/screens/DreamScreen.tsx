@@ -11,6 +11,15 @@ import { interpretDreamLLM } from '@/lib/api-client'
 import { getUser } from '@/lib/auth'
 import ProfileGroupSelector from '@/components/ProfileGroupSelector'
 
+/* ─── 카카오 SDK 초기화 ─── */
+const KAKAO_KEY = (import.meta as any).env?.VITE_KAKAO_APP_KEY as string | undefined
+function initKakao() {
+  if (!KAKAO_KEY) return
+  if (window.Kakao && !window.Kakao.isInitialized()) {
+    window.Kakao.init(KAKAO_KEY)
+  }
+}
+
 /* ─── 타입 ─── */
 interface ProfileRow {
   id: string; name: string; gender: string
@@ -125,6 +134,7 @@ export default function DreamScreen() {
   const [sajuCtx, setSajuCtx] = useState<SajuContextPayload | null>(null)
   const [expandedLit, setExpandedLit] = useState<Record<number, boolean>>({})
   const [saved, setSaved] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   // 프로필 목록
   const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([])
@@ -251,6 +261,80 @@ export default function DreamScreen() {
 
   const handleReset = () => {
     setText(''); setExperienceText(''); setResult(null); setPhase('input'); setExpandedLit({}); setSaved(false)
+  }
+
+  /* ─── 카카오 공유 ─── */
+  const handleShare = async () => {
+    if (!result || sharing) return
+    setSharing(true)
+
+    const sentiEmoji = (SENTIMENT_STYLE[result.overallSentiment] || SENTIMENT_STYLE['평']).emoji
+    const domainLines = (result.domains || [])
+      .map(d => `${DOMAIN_ICONS[d.name] || '🔮'} ${d.name}: ${d.rating} — ${d.summary}`)
+      .join('\n')
+    const luckyNums = result.luckyNumbers?.length ? result.luckyNumbers.join(', ') : ''
+    const symbols = result.detectedSymbols?.length ? result.detectedSymbols.join(', ') : ''
+    const profileName = selectedProfile ? `[${selectedProfile.name} 사주 기준]` : ''
+
+    const shareText = [
+      `🌙 꿈해몽 결과 ${profileName}`,
+      `━━━━━━━━━━━━━━━━━`,
+      `${sentiEmoji} ${result.overallSentiment}`,
+      result.overallSummary,
+      ``,
+      `📖 해몽`,
+      result.mainInterpretation,
+      domainLines ? `\n📊 운세 영역\n${domainLines}` : '',
+      ``,
+      `🔮 사주가의 조언`,
+      result.todaysAdvice,
+      `🎨 행운색: ${result.luckyColor}${luckyNums ? `  🎲 행운번호: ${luckyNums}` : ''}`,
+      symbols ? `꿈속 상징: ${symbols}` : '',
+      `━━━━━━━━━━━━━━━━━`,
+      `사주로 · AI 꿈해몽 + 사주 분석`,
+      `https://sajuro.ai`,
+    ].filter(Boolean).join('\n')
+
+    try {
+      initKakao()
+
+      // 1. Kakao SDK 사용
+      if (window.Kakao?.isInitialized?.()) {
+        window.Kakao.Share.sendDefault({
+          objectType: 'feed',
+          content: {
+            title: `🌙 꿈해몽 ${sentiEmoji} ${result.overallSentiment} — ${result.overallSummary}`,
+            description: result.mainInterpretation.slice(0, 100) + '...',
+            imageUrl: 'https://sajuro.ai/og-image.png',
+            link: { mobileWebUrl: 'https://sajuro.ai', webUrl: 'https://sajuro.ai' },
+          },
+          buttons: [
+            { title: '사주로에서 꿈해몽 하기', link: { mobileWebUrl: 'https://sajuro.ai', webUrl: 'https://sajuro.ai' } },
+          ],
+        })
+        return
+      }
+
+      // 2. Web Share API 폴백 (모바일에서 카카오톡 공유 가능)
+      if (navigator.share) {
+        await navigator.share({
+          title: `🌙 꿈해몽 — ${result.overallSentiment}`,
+          text: shareText,
+          url: 'https://sajuro.ai',
+        })
+        return
+      }
+
+      // 3. 클립보드 복사 (데스크톱 폴백)
+      await navigator.clipboard.writeText(shareText)
+      alert('분석 결과가 클립보드에 복사됐습니다.\n카카오톡에 붙여넣기 하세요.')
+    } catch (e) {
+      if ((e as Error)?.name !== 'AbortError') {
+        console.warn('[Share]', e)
+      }
+    } finally {
+      setSharing(false)
+    }
   }
 
   const sentimentStyle = result
@@ -505,9 +589,38 @@ export default function DreamScreen() {
           )}
 
           {/* 입력한 꿈 내용 */}
-          <div style={{ margin: '0 20px 20px', padding: '14px 16px', borderRadius: 12, background: 'var(--bg-surface-3)', border: '1px solid var(--border-1)' }}>
+          <div style={{ margin: '0 20px 12px', padding: '14px 16px', borderRadius: 12, background: 'var(--bg-surface-3)', border: '1px solid var(--border-1)' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>입력한 꿈 내용</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{text}</div>
+          </div>
+
+          {/* 카카오톡 공유 버튼 */}
+          <div style={{ margin: '0 20px 20px' }}>
+            <button
+              onClick={handleShare}
+              disabled={sharing}
+              style={{
+                width: '100%', padding: '14px 0',
+                borderRadius: 14, border: 'none',
+                background: sharing ? '#E5C800' : '#FEE500',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                cursor: sharing ? 'not-allowed' : 'pointer',
+                transition: 'background 0.15s',
+              }}
+            >
+              {/* 카카오톡 말풍선 아이콘 */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path fillRule="evenodd" clipRule="evenodd"
+                  d="M12 2C6.477 2 2 5.806 2 10.5c0 2.978 1.745 5.59 4.39 7.178L5.5 22l4.63-2.563C10.744 19.808 11.364 19.857 12 19.857 17.523 19.857 22 16.05 22 11.357V10.5C22 5.806 17.523 2 12 2z"
+                  fill="#1A1A1A" />
+              </svg>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1A' }}>
+                {sharing ? '공유 중...' : '카카오톡으로 공유하기'}
+              </span>
+            </button>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
+              분석 결과 전체 + sajuro.ai 링크가 함께 공유됩니다
+            </div>
           </div>
         </div>
       )}
