@@ -18,7 +18,7 @@ export const analysisMenuItems: AnalysisMenuItem[] = [
   { id: 'family', title: '가족궁합', description: '가족 간 관계 에너지 해석', icon: '👨‍👩‍👧', badge: 'free', category: 'match', route: '/analysis/family' },
   { id: 'general', title: '기타 궁합', description: '친구·동료·지인 간 관계 궁합 분석', icon: '🔗', badge: 'free', category: 'match', route: '/analysis/general' },
   { id: 'dream', title: '꿈해몽', description: '꿈 속 상징의 의미를 해석', icon: '🌙', badge: 'free', category: 'life', route: '/analysis/dream' },
-  { id: 'name', title: '이름풀이', description: '이름이 가진 에너지와 의미 분석', icon: '✍️', badge: 'free', category: 'life', route: '/analysis/name' },
+  { id: 'name', title: '이름풀이', description: '이름이 가진 에너지와 의미 분석', icon: '✍️', badge: 'free-now', category: 'life', route: '/analysis/name' },
   { id: 'palm', title: '손금 보기', description: '손금에 새겨진 운명의 비밀', icon: '🖐️', badge: 'free', category: 'image', route: '/analysis/palm' },
   { id: 'face', title: '관상 보기', description: '고전에 근거한 정밀 관상 해석', icon: '👤', badge: 'free', category: 'image', route: '/analysis/face' },
 ]
@@ -33,7 +33,7 @@ export const categoryLabels: Record<string, string> = {
 }
 
 export const badgeConfig: Record<string, { label: string; color: string }> = {
-  free: { label: '현재무료', color: '#DC2626' },
+  free: { label: '무료', color: '#6366F1' },
   'free-now': { label: '현재무료', color: '#DC2626' },
   'coming-soon': { label: '준비중', color: '#9CA3AF' },
 }
