@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Header from '@/components/layout/Header'
 import { Loader2, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
+import { getDeviceId } from '@/lib/device-id'
 import { calculateFullSaju } from '@/lib/saju-engine'
 import { getDailyFortune } from '@/lib/daily-fortune'
 import { lunarToSolar } from '@/lib/lunar-solar'
@@ -10,6 +11,16 @@ import { interpretDreamLLM } from '@/lib/api-client'
 import { getUser } from '@/lib/auth'
 
 /* ─── 타입 ─── */
+interface ProfileRow {
+  id: string; name: string; gender: string
+  birth_year: number; birth_month: number; birth_day: number
+  birth_hour: string; calendar_type: string
+  is_primary: boolean; group_name: string | null
+}
+
+const DEFAULT_GROUPS = ['가족', '친구', '직장', '연인']
+const GROUP_TABS = ['전체', ...DEFAULT_GROUPS, '미분류']
+
 interface SajuContextPayload {
   ilgan: string; ilganKr: string; ilganElement: string
   yongshin?: string; dayPillar?: string
@@ -78,6 +89,32 @@ function LiteratureCard({ ref: r, expanded, onToggle }: { ref: LiteratureRef; ex
   )
 }
 
+/* ─── 사주 → Context 변환 ─── */
+function buildSajuCtx(p: ProfileRow): SajuContextPayload | null {
+  try {
+    const { birth_year, birth_month, birth_day, calendar_type, gender } = p
+    const solarDate = (calendar_type === 'lunar' || calendar_type === 'lunar_leap')
+      ? lunarToSolar(birth_year, birth_month, birth_day, calendar_type === 'lunar_leap')
+      : new Date(birth_year, birth_month - 1, birth_day)
+    const [h, m] = p.birth_hour === 'unknown' ? [12, 0]
+      : (p.birth_hour.match(/(\d+):(\d+)/) || []).slice(1).map(Number) as [number, number]
+    const saju = calculateFullSaju({
+      birthYear: solarDate.getFullYear(), birthMonth: solarDate.getMonth() + 1,
+      birthDay: solarDate.getDate(), birthHour: h || 12, birthMinute: m || 0,
+      calendarType: 'solar', gender: gender as 'male' | 'female',
+    })
+    const fortune = getDailyFortune(birth_year, birth_month, birth_day, calendar_type)
+    const EM: Record<string, string> = { '목': '木', '화': '火', '토': '土', '금': '金', '수': '水' }
+    return {
+      ilgan: saju.dayPillar.stemHj, ilganKr: saju.dayPillar.stemKr,
+      ilganElement: EM[saju.dayMasterElement] || saju.dayMasterElement,
+      dayPillar: saju.dayPillar.label,
+      todayIlgin: fortune.dayPillar.label,
+      todayIlginElement: EM[fortune.userElement] || fortune.userElement,
+    }
+  } catch { return null }
+}
+
 /* ─── 메인 화면 ─── */
 export default function DreamScreen() {
   const [text, setText] = useState('')
@@ -90,47 +127,48 @@ export default function DreamScreen() {
   const [expandedLit, setExpandedLit] = useState<Record<number, boolean>>({})
   const [saved, setSaved] = useState(false)
 
-  /* 사주 컨텍스트 로드 */
+  // 프로필 목록
+  const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([])
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
+  const [groupTab, setGroupTab] = useState('전체')
+
+  /* 모든 프로필 로드 */
   useEffect(() => {
-    async function loadSaju() {
+    async function loadProfiles() {
       if (!supabase) return
       const identity = await getCurrentIdentity()
       const { data } = await applyUserFilter(
-        supabase.from('profiles').select('birth_year,birth_month,birth_day,birth_hour,calendar_type,gender'),
+        supabase.from('profiles')
+          .select('id,name,gender,birth_year,birth_month,birth_day,birth_hour,calendar_type,is_primary,group_name')
+          .order('is_primary', { ascending: false })
+          .order('created_at', { ascending: true }),
         identity
-      ).eq('is_primary', true).single()
-      if (!data) return
-
-      const { birth_year, birth_month, birth_day, calendar_type } = data
-      const solarDate = (calendar_type === 'lunar' || calendar_type === 'lunar_leap')
-        ? lunarToSolar(birth_year, birth_month, birth_day, calendar_type === 'lunar_leap')
-        : new Date(birth_year, birth_month - 1, birth_day)
-
-      const [h, m] = data.birth_hour === 'unknown' ? [12, 0]
-        : (data.birth_hour.match(/(\d+):(\d+)/) || []).slice(1).map(Number) as [number, number]
-
-      const saju = calculateFullSaju({
-        birthYear: solarDate.getFullYear(),
-        birthMonth: solarDate.getMonth() + 1,
-        birthDay: solarDate.getDate(),
-        birthHour: h || 12, birthMinute: m || 0,
-        calendarType: 'solar', gender: data.gender,
-      })
-
-      const fortune = getDailyFortune(birth_year, birth_month, birth_day, calendar_type)
-      const ELEMENTS_MAP: Record<string, string> = { '목': '木', '화': '火', '토': '土', '금': '金', '수': '水' }
-
-      setSajuCtx({
-        ilgan: saju.dayPillar.stemHj,
-        ilganKr: saju.dayPillar.stemKr,
-        ilganElement: ELEMENTS_MAP[saju.dayMasterElement] || saju.dayMasterElement,
-        dayPillar: saju.dayPillar.label,
-        todayIlgin: fortune.dayPillar.label,
-        todayIlginElement: ELEMENTS_MAP[fortune.userElement] || fortune.userElement,
-      })
+      )
+      if (data && data.length > 0) {
+        setAllProfiles(data as ProfileRow[])
+        const primary = (data as ProfileRow[]).find(p => p.is_primary) || data[0]
+        setSelectedProfileId(primary.id)
+        setSajuCtx(buildSajuCtx(primary as ProfileRow))
+      }
     }
-    loadSaju()
+    loadProfiles()
   }, [])
+
+  /* 선택 프로필 변경 시 sajuCtx 재계산 */
+  const handleSelectProfile = useCallback((p: ProfileRow) => {
+    setSelectedProfileId(p.id)
+    setSajuCtx(buildSajuCtx(p))
+  }, [])
+
+  /* 현재 선택된 프로필 */
+  const selectedProfile = allProfiles.find(p => p.id === selectedProfileId) ?? null
+
+  /* 탭 필터링된 프로필 */
+  const filteredProfiles = allProfiles.filter(p => {
+    if (groupTab === '전체') return true
+    if (groupTab === '미분류') return !p.group_name || !DEFAULT_GROUPS.includes(p.group_name)
+    return p.group_name === groupTab
+  })
 
   /* 해몽 실행 */
   const handleInterpret = async () => {
@@ -236,7 +274,7 @@ export default function DreamScreen() {
               주공해몽(周公解夢) 고전문헌과 사주명리학을<br/>
               결합한 정밀 꿈해몽 서비스입니다.
             </p>
-            {sajuCtx && (
+            {allProfiles.length === 0 && sajuCtx && (
               <div style={{ marginTop: 10, padding: '6px 12px', borderRadius: 'var(--radius-full)', background: '#FFF8E1', display: 'inline-block' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#D97706' }}>
                   {sajuCtx.dayPillar} 일주 기준으로 해몽합니다
@@ -244,6 +282,73 @@ export default function DreamScreen() {
               </div>
             )}
           </div>
+
+          {/* ─── 사주 선택 ─── */}
+          {allProfiles.length > 0 && (
+            <div style={{ margin: '0 20px 20px', padding: '16px', borderRadius: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-1)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>
+                🌙 분석할 사주 선택
+              </div>
+
+              {/* 그룹 탭 */}
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' as any, marginBottom: 10, paddingBottom: 2 }}>
+                {GROUP_TABS.filter(t => {
+                  if (t === '전체' || t === '미분류') return true
+                  return allProfiles.some(p => p.group_name === t)
+                }).map(t => (
+                  <button key={t} onClick={() => setGroupTab(t)}
+                    className={`s-chip ${groupTab === t ? 's-chip-active' : ''}`}
+                    style={{ flexShrink: 0, fontSize: 12 }}
+                  >{t}</button>
+                ))}
+              </div>
+
+              {/* 프로필 목록 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {filteredProfiles.map(p => {
+                  const isSelected = p.id === selectedProfileId
+                  return (
+                    <div key={p.id} onClick={() => handleSelectProfile(p)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 14px', borderRadius: 10,
+                        border: `1.5px solid ${isSelected ? 'var(--bg-accent)' : 'var(--border-1)'}`,
+                        background: isSelected ? '#FFFBEB' : 'var(--bg-surface-2)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: isSelected ? 'var(--bg-accent)' : 'var(--bg-surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: isSelected ? '#1F2937' : 'var(--text-tertiary)' }}>
+                            {p.name.slice(0, 1)}
+                          </span>
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{p.name}</span>
+                            {p.is_primary && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#FEF3C7', color: '#D97706' }}>기본</span>}
+                            {p.group_name && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#EFF6FF', color: '#2563EB' }}>{p.group_name}</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                            {p.birth_year}/{String(p.birth_month).padStart(2,'0')}/{String(p.birth_day).padStart(2,'0')} · {p.gender === 'male' ? '남' : '여'}
+                          </div>
+                        </div>
+                      </div>
+                      {isSelected && <span style={{ fontSize: 16, color: '#D97706' }}>✓</span>}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {selectedProfile && sajuCtx && (
+                <div style={{ marginTop: 10, padding: '6px 12px', borderRadius: 8, background: '#FFF8E1', border: '1px solid #FDE68A' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#D97706' }}>
+                    {selectedProfile.name} · {sajuCtx.dayPillar} 일주 기준으로 해몽합니다
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 분석 항목 */}
           <div style={{ margin: '0 20px 20px' }}>
