@@ -20,6 +20,126 @@ const SENTIMENT_EMOJI: Record<string, string> = {
   '대길': '🌟', '길': '✨', '중길': '🌙', '평': '☁️', '주의': '⚠️', '흉': '🌪️',
 }
 
+/* 공유 버튼 SVG (카카오 말풍선) */
+function KakaoShareBtn({ onClick, sharing }: { onClick: (e: React.MouseEvent) => void; sharing: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={sharing}
+      title="카카오톡으로 공유"
+      style={{
+        width: 28, height: 28, borderRadius: 8, border: 'none',
+        background: sharing ? '#E5C800' : '#FEE500',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: sharing ? 'not-allowed' : 'pointer', flexShrink: 0,
+      }}
+    >
+      {sharing ? (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
+          <circle cx="12" cy="12" r="10" stroke="#1A1A1A" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path fillRule="evenodd" clipRule="evenodd"
+            d="M12 2C6.477 2 2 5.806 2 10.5c0 2.978 1.745 5.59 4.39 7.178L5.5 22l4.63-2.563C10.744 19.808 11.364 19.857 12 19.857 17.523 19.857 22 16.05 22 11.357V10.5C22 5.806 17.523 2 12 2z"
+            fill="#1A1A1A" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
+async function doShare(title: string, text: string) {
+  initKakao()
+  if (window.Kakao?.isInitialized?.()) {
+    window.Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title,
+        description: text.slice(0, 100) + '...',
+        imageUrl: 'https://sajuro.ai/og-image.png',
+        link: { mobileWebUrl: 'https://sajuro.ai', webUrl: 'https://sajuro.ai' },
+      },
+      buttons: [{ title: '사주로 바로가기', link: { mobileWebUrl: 'https://sajuro.ai', webUrl: 'https://sajuro.ai' } }],
+    })
+    return
+  }
+  if (navigator.share) {
+    await navigator.share({ title, text: `${text}\n\nhttps://sajuro.ai`, url: 'https://sajuro.ai' })
+    return
+  }
+  await navigator.clipboard.writeText(`${text}\n\nhttps://sajuro.ai`)
+  alert('클립보드에 복사됐습니다. 카카오톡에 붙여넣기 하세요.')
+}
+
+async function sharePrecisionRecord(r: PrecisionRecord) {
+  const sections = Array.isArray(r.sections) ? r.sections : []
+  const itemLines = sections.flatMap((g: any) =>
+    (g.items || []).filter((i: any) => i.detail).map((i: any) =>
+      `• ${i.label || i.id}: ${(i.detail || '').slice(0, 60)}`
+    )
+  ).slice(0, 6).join('\n')
+
+  const text = [
+    `🔮 사주 정밀분석`,
+    `[${r.profile_name}]`,
+    `━━━━━━━━━━━━━━━━━`,
+    r.saju_summary,
+    itemLines ? `\n📋 분석 내용\n${itemLines}` : '',
+    `━━━━━━━━━━━━━━━━━`,
+    `사주로 · AI 사주 정밀분석`,
+  ].filter(Boolean).join('\n')
+  await doShare(`🔮 ${r.profile_name} 사주 정밀분석`, text)
+}
+
+async function shareMarriageRecord(r: MarriageRecord) {
+  const names = r.profile_name?.replace(' 결혼궁합', '') || ''
+  const text = [
+    `💍 결혼궁합`,
+    `[${names}]`,
+    `━━━━━━━━━━━━━━━━━`,
+    r.saju_summary,
+    `━━━━━━━━━━━━━━━━━`,
+    `사주로 · AI 사주 분석`,
+  ].filter(Boolean).join('\n')
+  await doShare(`💍 ${names} 결혼궁합`, text)
+}
+
+async function shareCompatRecord(r: CompatRecord) {
+  const result = (() => { try { return typeof r.result === 'string' ? JSON.parse(r.result) : r.result } catch { return null } })()
+  if (!result) return
+  const p1 = result.person1?.name || '?'
+  const p2 = result.person2?.name || '?'
+  const overall = result.overall_score ?? 0
+  const outer = result.outer_score ?? 0
+  const inner = result.inner_score ?? 0
+  const summary = result.overall_summary || ''
+  const text = [
+    `💑 연인궁합 ${p1} × ${p2}`,
+    `━━━━━━━━━━━━━━━━━`,
+    `종합 ${overall}점 | 겉궁합 ${outer} | 속궁합 ${inner}`,
+    summary,
+    `━━━━━━━━━━━━━━━━━`,
+    `사주로 · AI 사주 분석`,
+  ].filter(Boolean).join('\n')
+  await doShare(`💑 ${p1} × ${p2} 연인궁합 ${overall}점`, text)
+}
+
+async function shareNameRecord(r: NameRecord) {
+  const scoreLabel = r.score >= 80 ? '🌟 최상' : r.score >= 60 ? '✨ 양호' : '⚠️ 주의'
+  const text = [
+    `✍️ 이름풀이`,
+    `[${r.full_name}]`,
+    `━━━━━━━━━━━━━━━━━`,
+    `종합점수 ${r.score}점 ${scoreLabel}`,
+    r.full_hanja ? `한자: ${r.full_hanja} · 총 ${r.total_strokes}획` : '',
+    r.name_reading,
+    `━━━━━━━━━━━━━━━━━`,
+    `사주로 · AI 이름풀이`,
+  ].filter(Boolean).join('\n')
+  await doShare(`✍️ ${r.full_name} 이름풀이 ${r.score}점`, text)
+}
+
 async function shareDreamRecord(r: DreamRecord) {
   const sentiEmoji = SENTIMENT_EMOJI[r.overall_sentiment] || '🌙'
   const domainLines = (r.domains || [])
@@ -147,7 +267,16 @@ function fmtDate(iso: string) {
 
 /* ─── 이름풀이 카드 ─── */
 function NameCard({ r }: { r: NameRecord }) {
+  const [sharing, setSharing] = useState(false)
   const scoreColor = r.score >= 80 ? '#059669' : r.score >= 60 ? '#D97706' : '#DC2626'
+
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (sharing) return
+    setSharing(true)
+    try { await shareNameRecord(r) } catch { } finally { setSharing(false) }
+  }
+
   return (
     <div style={{ padding: '14px 16px', borderRadius: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-1)', marginBottom: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -160,9 +289,12 @@ function NameCard({ r }: { r: NameRecord }) {
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{r.full_hanja} · 총 {r.total_strokes}획</div>
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: scoreColor }}>{r.score}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>종합점수</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: scoreColor }}>{r.score}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>종합점수</div>
+          </div>
+          <KakaoShareBtn onClick={handleShareClick} sharing={sharing} />
         </div>
       </div>
       {r.name_reading && (
@@ -194,6 +326,7 @@ function EmptyState({ emoji, title, desc, label, path }: {
 
 /* ─── 정밀분석 카드 ─── */
 function PrecisionCard({ r, nav }: { r: PrecisionRecord; nav: ReturnType<typeof useNavigate> }) {
+  const [sharing, setSharing] = useState(false)
   const sections = Array.isArray(r.sections) ? r.sections : []
   const itemCount = sections.reduce((s: number, g: any) => s + (g.items?.length || 0), 0)
   const detailCount = sections.reduce((s: number, g: any) =>
@@ -202,9 +335,16 @@ function PrecisionCard({ r, nav }: { r: PrecisionRecord; nav: ReturnType<typeof 
     s + (g.items || []).reduce((ss: number, i: any) =>
       ss + (i.qaMessages || []).filter((m: any) => m.answer).length, 0), 0)
 
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (sharing) return
+    setSharing(true)
+    try { await sharePrecisionRecord(r) } catch { } finally { setSharing(false) }
+  }
+
   return (
-    <button onClick={() => nav('/precision-result', { state: { analysisId: r.id } })}
-      style={{ display: 'block', margin: '0 20px 14px', padding: 16, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-1)', textAlign: 'left', width: 'calc(100% - 40px)', cursor: 'pointer' }}>
+    <div onClick={() => nav('/precision-result', { state: { analysisId: r.id } })}
+      style={{ margin: '0 20px 14px', padding: 16, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-1)', textAlign: 'left', width: 'calc(100% - 40px)', cursor: 'pointer', boxSizing: 'border-box' }}>
 
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -212,7 +352,10 @@ function PrecisionCard({ r, nav }: { r: PrecisionRecord; nav: ReturnType<typeof 
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🔮 {r.profile_name}</span>
           <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: '#EEF2FF', color: '#6366F1' }}>정밀분석</span>
         </div>
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+          <KakaoShareBtn onClick={handleShareClick} sharing={sharing} />
+        </div>
       </div>
 
       {/* 핵심 요약 */}
@@ -237,7 +380,7 @@ function PrecisionCard({ r, nav }: { r: PrecisionRecord; nav: ReturnType<typeof 
         )}
         <span style={{ marginLeft: 'auto', fontSize: 11, color: '#6366F1', fontWeight: 600 }}>다시 보기 ›</span>
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -278,6 +421,7 @@ function LifetimeCard({ r, nav }: { r: LifetimeRecord; nav: ReturnType<typeof us
 
 /* ─── 결혼궁합 카드 ─── */
 function MarriageCard({ r, nav }: { r: MarriageRecord; nav: ReturnType<typeof useNavigate> }) {
+  const [sharing, setSharing] = useState(false)
   const names = r.profile_name?.replace(' 결혼궁합', '') || ''
   const sections = (() => {
     let s = r.sections
@@ -292,17 +436,27 @@ function MarriageCard({ r, nav }: { r: MarriageRecord; nav: ReturnType<typeof us
   const detailCount = sections.reduce((s: number, sec: any) =>
     s + (sec.items || []).filter((i: any) => i.detail).length, 0)
 
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (sharing) return
+    setSharing(true)
+    try { await shareMarriageRecord(r) } catch { } finally { setSharing(false) }
+  }
+
   return (
-    <button
+    <div
       onClick={() => nav('/marriage-result', { state: { analysisId: r.id } })}
-      style={{ display: 'block', margin: '0 20px 14px', padding: 16, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid #DDD6FE', textAlign: 'left', width: 'calc(100% - 40px)', cursor: 'pointer' }}
+      style={{ margin: '0 20px 14px', padding: 16, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid #DDD6FE', textAlign: 'left', width: 'calc(100% - 40px)', cursor: 'pointer', boxSizing: 'border-box' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>💍 {names}</span>
           <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: '#EDE9FE', color: '#7C3AED' }}>결혼궁합</span>
         </div>
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+          <KakaoShareBtn onClick={handleShareClick} sharing={sharing} />
+        </div>
       </div>
       {avgScore > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -321,12 +475,13 @@ function MarriageCard({ r, nav }: { r: MarriageRecord; nav: ReturnType<typeof us
         {qaCount > 0 && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 6, background: '#FFF0F6', color: '#EC4899', fontWeight: 600 }}>💬 Q&A {qaCount}회</span>}
         <span style={{ marginLeft: 'auto', fontSize: 11, color: '#7C3AED', fontWeight: 600 }}>다시 보기 ›</span>
       </div>
-    </button>
+    </div>
   )
 }
 
 /* ─── 연인궁합 카드 ─── */
 function CompatCard({ r, nav }: { r: CompatRecord; nav: ReturnType<typeof useNavigate> }) {
+  const [sharing, setSharing] = useState(false)
   const result = (() => {
     try { return typeof r.result === 'string' ? JSON.parse(r.result) : r.result } catch { return null }
   })()
@@ -342,17 +497,27 @@ function CompatCard({ r, nav }: { r: CompatRecord; nav: ReturnType<typeof useNav
   const scoreColor = overall >= 80 ? '#10B981' : overall >= 60 ? '#F2C316' : '#FF5A5F'
   const scoreLabel = overall >= 80 ? '좋은 궁합 ✨' : overall >= 60 ? '보통 궁합 👍' : '주의 필요 ⚠️'
 
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (sharing) return
+    setSharing(true)
+    try { await shareCompatRecord(r) } catch { } finally { setSharing(false) }
+  }
+
   return (
-    <button
+    <div
       onClick={() => nav('/compatibility-result', { state: { data: result } })}
-      style={{ display: 'block', margin: '0 20px 14px', padding: 16, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid #FBCFE8', textAlign: 'left', width: 'calc(100% - 40px)', cursor: 'pointer' }}
+      style={{ margin: '0 20px 14px', padding: 16, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid #FBCFE8', textAlign: 'left', width: 'calc(100% - 40px)', cursor: 'pointer', boxSizing: 'border-box' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>💑 {p1} × {p2}</span>
           <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: '#FFF0F6', color: '#DB2777' }}>연인궁합</span>
         </div>
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+          <KakaoShareBtn onClick={handleShareClick} sharing={sharing} />
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -379,7 +544,7 @@ function CompatCard({ r, nav }: { r: CompatRecord; nav: ReturnType<typeof useNav
       )}
 
       <span style={{ fontSize: 11, color: '#DB2777', fontWeight: 600 }}>다시 보기 ›</span>
-    </button>
+    </div>
   )
 }
 
@@ -409,30 +574,7 @@ function DreamCard({ r }: { r: DreamRecord }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
-          {/* 카카오 공유 버튼 */}
-          <button
-            onClick={handleShareClick}
-            disabled={sharing}
-            title="카카오톡으로 공유"
-            style={{
-              width: 28, height: 28, borderRadius: 8, border: 'none',
-              background: sharing ? '#E5C800' : '#FEE500',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: sharing ? 'not-allowed' : 'pointer', flexShrink: 0,
-            }}
-          >
-            {sharing ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
-                <circle cx="12" cy="12" r="10" stroke="#1A1A1A" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path fillRule="evenodd" clipRule="evenodd"
-                  d="M12 2C6.477 2 2 5.806 2 10.5c0 2.978 1.745 5.59 4.39 7.178L5.5 22l4.63-2.563C10.744 19.808 11.364 19.857 12 19.857 17.523 19.857 22 16.05 22 11.357V10.5C22 5.806 17.523 2 12 2z"
-                  fill="#1A1A1A" />
-              </svg>
-            )}
-          </button>
+          <KakaoShareBtn onClick={handleShareClick} sharing={sharing} />
           <span style={{ fontSize: 13, color: 'var(--text-tertiary)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▾</span>
         </div>
       </div>
