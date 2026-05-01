@@ -19,7 +19,7 @@ const YEARS = Array.from({ length: THIS_YEAR - 1940 + 1 }, (_, i) => THIS_YEAR -
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MINUTES = [0, 10, 20, 30, 40, 50]
-const PRESET_GROUPS = ['가족', '친구', '직장', '연인']
+const PRESET_GROUPS = ['나', '가족', '친구', '직장', '연인']
 
 const KOREAN_CITIES: Record<string, string> = {
   Seoul:    '서울특별시',
@@ -195,6 +195,7 @@ export default function AddProfileScreen() {
             setCustomGroup(gn)
             setShowCustom(true)
           }
+          // '나' 그룹이 없는 기존 기본 사주에는 '나'를 자동 설정하지 않음
         } else {
           const kakaoUser = await getUser()
           const deviceId = getDeviceId()
@@ -202,7 +203,10 @@ export default function AddProfileScreen() {
           if (kakaoUser?.id) q = q.eq('user_id', kakaoUser.id)
           else q = q.eq('device_id', deviceId).is('user_id', null)
           const { data } = await q
-          setHasPrimary(!!(data && data.length > 0))
+          const primaryExists = !!(data && data.length > 0)
+          setHasPrimary(primaryExists)
+          // 보관소에 사주가 없으면 '나' 그룹을 기본 선택
+          if (!primaryExists) setGroupName('나')
         }
       } catch (e) {
         console.error('[AddProfileScreen] 초기화 오류:', e)
