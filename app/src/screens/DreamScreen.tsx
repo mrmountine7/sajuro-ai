@@ -9,6 +9,7 @@ import { getDailyFortune } from '@/lib/daily-fortune'
 import { lunarToSolar } from '@/lib/lunar-solar'
 import { interpretDreamLLM } from '@/lib/api-client'
 import { getUser } from '@/lib/auth'
+import ProfileGroupSelector from '@/components/ProfileGroupSelector'
 
 /* ─── 타입 ─── */
 interface ProfileRow {
@@ -18,8 +19,6 @@ interface ProfileRow {
   is_primary: boolean; group_name: string | null
 }
 
-const DEFAULT_GROUPS = ['가족', '친구', '직장', '연인']
-const GROUP_TABS = ['전체', ...DEFAULT_GROUPS, '미분류']
 
 interface SajuContextPayload {
   ilgan: string; ilganKr: string; ilganElement: string
@@ -130,7 +129,6 @@ export default function DreamScreen() {
   // 프로필 목록
   const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([])
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
-  const [groupTab, setGroupTab] = useState('전체')
 
   /* 모든 프로필 로드 */
   useEffect(() => {
@@ -162,13 +160,6 @@ export default function DreamScreen() {
 
   /* 현재 선택된 프로필 */
   const selectedProfile = allProfiles.find(p => p.id === selectedProfileId) ?? null
-
-  /* 탭 필터링된 프로필 */
-  const filteredProfiles = allProfiles.filter(p => {
-    if (groupTab === '전체') return true
-    if (groupTab === '미분류') return !p.group_name || !DEFAULT_GROUPS.includes(p.group_name)
-    return p.group_name === groupTab
-  })
 
   /* 해몽 실행 */
   const handleInterpret = async () => {
@@ -297,55 +288,20 @@ export default function DreamScreen() {
                 🌙 분석할 사주 선택
               </div>
 
-              {/* 그룹 탭 */}
-              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' as any, marginBottom: 10, paddingBottom: 2 }}>
-                {GROUP_TABS.filter(t => {
-                  if (t === '전체' || t === '미분류') return true
-                  return allProfiles.some(p => p.group_name === t)
-                }).map(t => (
-                  <button key={t} onClick={() => setGroupTab(t)}
-                    className={`s-chip ${groupTab === t ? 's-chip-active' : ''}`}
-                    style={{ flexShrink: 0, fontSize: 12 }}
-                  >{t}</button>
-                ))}
-              </div>
-
-              {/* 프로필 목록 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {filteredProfiles.map(p => {
-                  const isSelected = p.id === selectedProfileId
-                  return (
-                    <div key={p.id} onClick={() => handleSelectProfile(p)}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '10px 14px', borderRadius: 10,
-                        border: `1.5px solid ${isSelected ? 'var(--bg-accent)' : 'var(--border-1)'}`,
-                        background: isSelected ? '#FFFBEB' : 'var(--bg-surface-2)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: isSelected ? 'var(--bg-accent)' : 'var(--bg-surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: isSelected ? '#1F2937' : 'var(--text-tertiary)' }}>
-                            {p.name.slice(0, 1)}
-                          </span>
-                        </div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{p.name}</span>
-                            {p.is_primary && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#FEF3C7', color: '#D97706' }}>기본</span>}
-                            {p.group_name && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#EFF6FF', color: '#2563EB' }}>{p.group_name}</span>}
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                            {p.birth_year}/{String(p.birth_month).padStart(2,'0')}/{String(p.birth_day).padStart(2,'0')} · {p.gender === 'male' ? '남' : '여'}
-                          </div>
-                        </div>
-                      </div>
-                      {isSelected && <span style={{ fontSize: 16, color: '#D97706' }}>✓</span>}
-                    </div>
-                  )
-                })}
-              </div>
+              <ProfileGroupSelector
+                profiles={allProfiles.map(p => ({
+                  id: p.id,
+                  name: p.name,
+                  subtitle: `${p.birth_year}/${String(p.birth_month).padStart(2,'0')}/${String(p.birth_day).padStart(2,'0')} · ${p.gender === 'male' ? '남' : '여'}`,
+                  is_primary: p.is_primary,
+                  group_name: p.group_name,
+                }))}
+                selected={selectedProfileId ?? ''}
+                onSelect={id => {
+                  const p = allProfiles.find(x => x.id === id)
+                  if (p) handleSelectProfile(p)
+                }}
+              />
 
               {selectedProfile && sajuCtx && (
                 <div style={{ marginTop: 10, padding: '6px 12px', borderRadius: 8, background: '#FFF8E1', border: '1px solid #FDE68A' }}>

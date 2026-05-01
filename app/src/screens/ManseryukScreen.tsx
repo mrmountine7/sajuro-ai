@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
 import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
+import ProfileGroupSelector from '@/components/ProfileGroupSelector'
 import { lunarToSolar } from '@/lib/lunar-solar'
 import {
   calculateFullSaju, calculateDaeun, getYearFortune, getMonthFortunes, getDayFortunes,
@@ -326,7 +327,7 @@ type TabType = typeof TABS[number]
 /* ─── 메인 ─── */
 export default function ManseryukScreen() {
   const nav = useNavigate()
-  const [allProfiles, setAllProfiles] = useState<(Profile & { id: string; is_primary: boolean })[]>([])
+  const [allProfiles, setAllProfiles] = useState<(Profile & { id: string; is_primary: boolean; group_name?: string | null })[]>([])
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [saju, setSaju] = useState<SajuResult | null>(null)
@@ -344,8 +345,9 @@ export default function ManseryukScreen() {
       const identity = await getCurrentIdentity()
       const { data } = await applyUserFilter(
         supabase.from('profiles')
-          .select('id, name, gender, birth_year, birth_month, birth_day, birth_hour, calendar_type, is_primary')
-          .order('is_primary', { ascending: false }),
+          .select('id, name, gender, birth_year, birth_month, birth_day, birth_hour, calendar_type, is_primary, group_name')
+          .order('is_primary', { ascending: false })
+          .order('created_at', { ascending: true }),
         identity
       )
       if (data && data.length > 0) {
@@ -452,33 +454,20 @@ export default function ManseryukScreen() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Header title="만세력" showBack onBack={() => nav(-1)} rightActions={['fontSize']} />
 
-      {/* ─── 프로필 선택 칩 바 ─── */}
+      {/* ─── 프로필 선택 ─── */}
       {allProfiles.length > 1 && (
-        <div style={{
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch' as any,
-          scrollbarWidth: 'none' as any,
-          msOverflowStyle: 'none' as any,
-          background: 'var(--bg-app)',
-          borderBottom: '1px solid var(--border-1)',
-          flexShrink: 0,
-        }}>
-          <div style={{
-            display: 'flex', gap: 8,
-            padding: '6px 20px 8px',
-            width: 'max-content',
-          }}>
-            {allProfiles.map(p => (
-              <button
-                key={p.id}
-                onClick={() => setSelectedProfileId(p.id)}
-                className={`s-chip ${selectedProfileId === p.id ? 's-chip-active' : ''}`}
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
+        <div style={{ background: 'var(--bg-app)', borderBottom: '1px solid var(--border-1)', flexShrink: 0, paddingTop: 12 }}>
+          <ProfileGroupSelector
+            profiles={allProfiles.map(p => ({
+              id: p.id,
+              name: p.name,
+              subtitle: `${p.birth_year}/${String(p.birth_month).padStart(2,'0')}/${String(p.birth_day).padStart(2,'0')} · ${p.gender === 'male' ? '남' : '여'}`,
+              is_primary: p.is_primary,
+              group_name: p.group_name,
+            }))}
+            selected={selectedProfileId ?? ''}
+            onSelect={setSelectedProfileId}
+          />
         </div>
       )}
 

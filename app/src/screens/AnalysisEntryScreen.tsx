@@ -7,6 +7,7 @@ import { Check, Loader2, X, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Profile } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
+import ProfileGroupSelector from '@/components/ProfileGroupSelector'
 
 /* ─── 정밀분석 항목 정의 ─── */
 interface AnalysisItem { id: string; label: string; desc: string }
@@ -207,97 +208,14 @@ function profileToRequest(p: Profile) {
   return { name: p.name, gender: p.gender, year: y, month: m, day: d, hour: h, minute: mi || 0, is_lunar: p.is_lunar }
 }
 
-function ProfileSelector({ profiles, selected, onSelect, label }: {
-  profiles: ProfileWithGroup[]; selected: string; onSelect: (id: string) => void; label: string
-}) {
-  // 그룹 탭 계산 — 사주 있는 그룹만, 전체는 맨 오른쪽
-  const nonEmptyGroups = Array.from(new Set(
-    profiles.map(p => p.group_name).filter(Boolean)
-  )) as string[]
-  const hasUngrouped = profiles.some(p => !p.group_name && !p.is_primary)
-  const groups = [...nonEmptyGroups, ...(hasUngrouped ? ['미분류'] : []), '전체']
-
-  // '나' 그룹이 있으면 기본 선택, 없으면 첫 번째 그룹
-  const defaultGroup = groups.includes('나') ? '나' : (groups[0] ?? '전체')
-  const [activeGroup, setActiveGroup] = useState(defaultGroup)
-
-  const filtered = activeGroup === '전체' ? profiles
-    : activeGroup === '미분류' ? profiles.filter(p => !p.group_name)
-    : profiles.filter(p => p.group_name === activeGroup)
-
-  return (
-    <div style={{ margin: '0 20px 16px' }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>{label}</div>
-
-      {/* 그룹 탭 — 2개 이상일 때만 표시 */}
-      {groups.length > 2 && (
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10, paddingBottom: 2 }}>
-          {groups.map(g => {
-            const count = g === '전체' ? profiles.length
-              : g === '미분류' ? profiles.filter(p => !p.group_name).length
-              : profiles.filter(p => p.group_name === g).length
-            return (
-            <button key={g} onClick={() => setActiveGroup(g)} style={{
-              padding: '5px 12px', borderRadius: 'var(--radius-full)', flexShrink: 0,
-              fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
-              background: activeGroup === g ? 'var(--bg-inverse)' : 'var(--bg-surface)',
-              color: activeGroup === g ? 'var(--text-inverse)' : 'var(--text-tertiary)',
-              border: activeGroup === g ? 'none' : '1px solid var(--border-1)',
-              transition: 'all 0.15s',
-            }}>
-              {g}
-              {count > 0 && (
-                <span style={{ marginLeft: 3, fontSize: 11, opacity: 0.75 }}>{count}</span>
-              )}
-            </button>
-            )
-          })}
-        </div>
-      )}
-
-      {/* 프로필 목록 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.length === 0 ? (
-          <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' }}>
-            이 그룹에 저장된 사주가 없습니다
-          </div>
-        ) : filtered.map(p => {
-          const active = selected === p.id
-          return (
-            <button key={p.id} onClick={() => onSelect(p.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
-              borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
-              border: active ? '2px solid var(--border-accent)' : '1px solid var(--border-1)',
-              textAlign: 'left', width: '100%',
-            }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 'var(--radius-full)',
-                background: active ? 'var(--bg-accent)' : 'var(--bg-surface-3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16, fontWeight: 600, flexShrink: 0,
-                color: active ? '#1F2937' : 'var(--text-secondary)',
-              }}>{p.name[0]}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</span>
-                  {p.is_primary && (
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: '#FFF8DD', color: '#C58D00' }}>기본</span>
-                  )}
-                  {p.group_name && (
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: 'var(--bg-surface-3)', color: 'var(--text-tertiary)' }}>{p.group_name}</span>
-                  )}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                  {p.birth_date.replace(/-/g, '/')} {p.birth_time} ({p.is_lunar ? '음' : '양'})
-                </div>
-              </div>
-              {active && <Check size={18} style={{ color: 'var(--text-accent)', flexShrink: 0 }} />}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
+function toProfileItems(profiles: ProfileWithGroup[]) {
+  return profiles.map(p => ({
+    id: p.id,
+    name: p.name,
+    subtitle: `${p.birth_date.replace(/-/g, '/')} ${p.birth_time} (${p.is_lunar ? '음' : '양'})`,
+    is_primary: p.is_primary,
+    group_name: p.group_name,
+  }))
 }
 
 export default function AnalysisEntryScreen() {
@@ -497,15 +415,15 @@ export default function AnalysisEntryScreen() {
 
         {/* Profile Selection */}
         {isProfile && (
-          <ProfileSelector profiles={profiles} selected={selectedId1} onSelect={setSelectedId1} label="분석할 사주 선택" />
+          <ProfileGroupSelector profiles={toProfileItems(profiles)} selected={selectedId1} onSelect={setSelectedId1} label="분석할 사주 선택" />
         )}
 
         {/* Compatibility: Two Profile Selection */}
         {isCompatibility && (
           <>
-            <ProfileSelector profiles={profiles} selected={selectedId1} onSelect={setSelectedId1} label="나" />
-            <ProfileSelector
-              profiles={profiles.filter(p => p.id !== selectedId1)}
+            <ProfileGroupSelector profiles={toProfileItems(profiles)} selected={selectedId1} onSelect={setSelectedId1} label="나" />
+            <ProfileGroupSelector
+              profiles={toProfileItems(profiles.filter(p => p.id !== selectedId1))}
               selected={selectedId2} onSelect={setSelectedId2} label="상대"
             />
           </>
