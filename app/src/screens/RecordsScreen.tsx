@@ -5,6 +5,71 @@ import Header from '@/components/layout/Header'
 import { supabase } from '@/lib/supabase'
 import { getCurrentIdentity, applyUserFilter } from '@/lib/user-filter'
 
+/* ─── 카카오 공유 유틸 ─── */
+const KAKAO_KEY = (import.meta as any).env?.VITE_KAKAO_APP_KEY as string | undefined
+function initKakao() {
+  if (!KAKAO_KEY) return
+  if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_KEY)
+}
+
+const DOMAIN_ICONS_MAP: Record<string, string> = {
+  '재물운': '💰', '직업운': '💼', '연애운': '💕', '건강운': '❤️', '가정운': '🏠',
+  '명예운': '⭐', '사업운': '🏢', '대인관계': '🤝',
+}
+const SENTIMENT_EMOJI: Record<string, string> = {
+  '대길': '🌟', '길': '✨', '중길': '🌙', '평': '☁️', '주의': '⚠️', '흉': '🌪️',
+}
+
+async function shareDreamRecord(r: DreamRecord) {
+  const sentiEmoji = SENTIMENT_EMOJI[r.overall_sentiment] || '🌙'
+  const domainLines = (r.domains || [])
+    .map(d => `${DOMAIN_ICONS_MAP[d.name] || '🔮'} ${d.name}: ${d.rating} — ${d.summary}`)
+    .join('\n')
+  const symbols = r.detected_symbols?.length ? r.detected_symbols.join(', ') : ''
+
+  const shareText = [
+    `🌙 꿈해몽 결과`,
+    `━━━━━━━━━━━━━━━━━`,
+    `${sentiEmoji} ${r.overall_sentiment}`,
+    r.overall_summary,
+    ``,
+    `📖 해몽`,
+    r.main_interpretation,
+    domainLines ? `\n📊 운세 영역\n${domainLines}` : '',
+    ``,
+    r.todays_advice ? `🔮 사주가의 조언\n${r.todays_advice}` : '',
+    r.lucky_color ? `🎨 행운색: ${r.lucky_color}` : '',
+    symbols ? `꿈속 상징: ${symbols}` : '',
+    `━━━━━━━━━━━━━━━━━`,
+    `사주로 · AI 꿈해몽 + 사주 분석`,
+    `https://sajuro.ai`,
+  ].filter(Boolean).join('\n')
+
+  initKakao()
+
+  if (window.Kakao?.isInitialized?.()) {
+    window.Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: `🌙 꿈해몽 ${sentiEmoji} ${r.overall_sentiment} — ${r.overall_summary}`,
+        description: r.main_interpretation?.slice(0, 100) + '...',
+        imageUrl: 'https://sajuro.ai/og-image.png',
+        link: { mobileWebUrl: 'https://sajuro.ai', webUrl: 'https://sajuro.ai' },
+      },
+      buttons: [{ title: '사주로에서 꿈해몽 하기', link: { mobileWebUrl: 'https://sajuro.ai', webUrl: 'https://sajuro.ai' } }],
+    })
+    return
+  }
+
+  if (navigator.share) {
+    await navigator.share({ title: `🌙 꿈해몽 — ${r.overall_sentiment}`, text: shareText, url: 'https://sajuro.ai' })
+    return
+  }
+
+  await navigator.clipboard.writeText(shareText)
+  alert('클립보드에 복사됐습니다. 카카오톡에 붙여넣기 하세요.')
+}
+
 /* ─── 타입 ─── */
 interface PrecisionRecord {
   id: string
@@ -321,7 +386,15 @@ function CompatCard({ r, nav }: { r: CompatRecord; nav: ReturnType<typeof useNav
 /* ─── 꿈해몽 카드 ─── */
 function DreamCard({ r }: { r: DreamRecord }) {
   const [expanded, setExpanded] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const sc = SENTIMENT_COLORS[r.overall_sentiment] || SC_DEFAULT
+
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (sharing) return
+    setSharing(true)
+    try { await shareDreamRecord(r) } catch { /* ignore AbortError */ } finally { setSharing(false) }
+  }
 
   return (
     <div
@@ -334,8 +407,32 @@ function DreamCard({ r }: { r: DreamRecord }) {
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🌙 꿈해몽</span>
           <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: sc.bg, color: sc.color }}>{r.overall_sentiment}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtDate(r.created_at)}</span>
+          {/* 카카오 공유 버튼 */}
+          <button
+            onClick={handleShareClick}
+            disabled={sharing}
+            title="카카오톡으로 공유"
+            style={{
+              width: 28, height: 28, borderRadius: 8, border: 'none',
+              background: sharing ? '#E5C800' : '#FEE500',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: sharing ? 'not-allowed' : 'pointer', flexShrink: 0,
+            }}
+          >
+            {sharing ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
+                <circle cx="12" cy="12" r="10" stroke="#1A1A1A" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path fillRule="evenodd" clipRule="evenodd"
+                  d="M12 2C6.477 2 2 5.806 2 10.5c0 2.978 1.745 5.59 4.39 7.178L5.5 22l4.63-2.563C10.744 19.808 11.364 19.857 12 19.857 17.523 19.857 22 16.05 22 11.357V10.5C22 5.806 17.523 2 12 2z"
+                  fill="#1A1A1A" />
+              </svg>
+            )}
+          </button>
           <span style={{ fontSize: 13, color: 'var(--text-tertiary)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▾</span>
         </div>
       </div>
