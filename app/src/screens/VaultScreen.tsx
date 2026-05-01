@@ -453,6 +453,7 @@ export default function VaultScreen() {
 
   const tabs = [
     ...[...allManagedGroups, ...(hasUngrouped ? ['미분류'] : [])]
+      .filter(g => memberCount(g) > 0)
       .sort((a, b) => memberCount(b) - memberCount(a)),
     '전체',
   ]
