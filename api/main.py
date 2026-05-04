@@ -3290,7 +3290,9 @@ async def monitor_stats():
         user_rows      = sb.table("profiles").select("user_id").execute()
         unique_devices      = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id")))
         unique_users        = len(set(r["user_id"]   for r in (user_rows.data or []) if r.get("user_id")))
-        week_devices        = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id") and r.get("created_at","") >= week_start))
+        week_devices      = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id") and r.get("created_at","") >= week_start))
+        yesterday_devices = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id") and yesterday_start <= r.get("created_at","") < today_start))
+        today_devices     = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id") and r.get("created_at","") >= today_start))
 
         # ── 분석 통계 ──
         total_analyses     = sb.table("precision_analyses").select("id", count="exact").execute()
@@ -3347,9 +3349,11 @@ async def monitor_stats():
                 "today":     today_profiles.count or 0,
                 "yesterday": yesterday_profiles.count or 0,
                 "week":      week_profiles.count or 0,
-                "unique_devices":      unique_devices,
-                "unique_users":        unique_users,
-                "week_unique_devices": week_devices,
+                "unique_devices":           unique_devices,
+                "unique_users":             unique_users,
+                "week_unique_devices":      week_devices,
+                "yesterday_unique_devices": yesterday_devices,
+                "today_unique_devices":     today_devices,
                 "by_group": group_count,
             },
             "analyses": {

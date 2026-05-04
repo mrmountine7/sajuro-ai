@@ -29,7 +29,8 @@ interface Stats {
   generated_at: string
   profiles: {
     total: number; today: number; yesterday: number; week: number
-    unique_devices: number; unique_users: number; week_unique_devices: number
+    unique_devices: number; unique_users: number
+    week_unique_devices: number; yesterday_unique_devices: number; today_unique_devices: number
     by_group: Record<string, number>
   }
   analyses: { total: number; today: number; yesterday: number; week: number; by_type: Record<string, number> }
@@ -259,12 +260,14 @@ export default function MonitorScreen() {
 
         {/* 어제 현황 */}
         <PeriodSection title="어제 현황" badge={new Date(Date.now() - 86400000).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} badgeColor="#F59E0B">
+          <MiniStatCard icon={<Users size={14} />}      label="신규 방문" value={stats?.profiles.yesterday_unique_devices ?? '—'} color="#F59E0B" />
           <MiniStatCard icon={<TrendingUp size={14} />} label="등록 명식" value={stats?.profiles.yesterday ?? '—'} color="#F59E0B" />
           <MiniStatCard icon={<BarChart2 size={14} />}  label="분석 건수" value={stats?.analyses.yesterday ?? '—'} color="#F59E0B" />
         </PeriodSection>
 
         {/* 오늘 현황 */}
         <PeriodSection title="오늘 현황" badge={new Date().toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} badgeColor="#10B981">
+          <MiniStatCard icon={<Users size={14} />}      label="신규 방문" value={stats?.profiles.today_unique_devices ?? '—'} color="#10B981" />
           <MiniStatCard icon={<TrendingUp size={14} />} label="등록 명식" value={stats?.profiles.today ?? '—'} color="#10B981" />
           <MiniStatCard icon={<BarChart2 size={14} />}  label="분석 건수" value={stats?.analyses.today ?? '—'} color="#10B981" />
         </PeriodSection>
