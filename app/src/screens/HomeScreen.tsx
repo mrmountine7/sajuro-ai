@@ -70,7 +70,7 @@ const SERVICE_PREVIEWS = [
   { category: '궁합',    name: '연인 궁합',    desc: '끌림·갈등·감정 리듬 6단계 분석', accent: '#BE123C', bg: '#FFF1F2' },
   { category: '궁합',    name: '결혼 궁합',    desc: '일생 동반자 적합도 심층 분석', accent: '#BE123C', bg: '#FFF1F2' },
   { category: '생활',    name: '꿈해몽',       desc: '꿈을 명리학적으로 해석',       accent: '#0369A1', bg: '#F0F9FF' },
-  { category: '생활',    name: '이름풀이',      desc: '한자·오행격으로 이름 분석',    accent: '#0369A1', bg: '#F0F9FF' },
+  { category: '생활',    name: '이름풀이 · 추천',      desc: '한자·오행격으로 이름 분석',    accent: '#0369A1', bg: '#F0F9FF' },
   { category: '이미지',  name: '손금 분석',    desc: '사진 한 장으로 손금 해석',     accent: '#15803D', bg: '#F0FDF4' },
   { category: '이미지',  name: '관상 분석',    desc: '사진으로 보는 삼정·오관·기색', accent: '#15803D', bg: '#F0FDF4' },
 ]

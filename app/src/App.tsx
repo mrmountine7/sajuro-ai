@@ -30,6 +30,7 @@ import LifetimeFortuneScreen from '@/screens/LifetimeFortuneScreen'
 import FortuneScreen from '@/screens/FortuneScreen'
 import FaceReadingScreen from '@/screens/FaceReadingScreen'
 import FamilyCompatibilityResultScreen from '@/screens/FamilyCompatibilityResultScreen'
+import MonitorScreen from '@/screens/MonitorScreen'
 
 const TAB_PATHS = ['/', '/analysis', '/vault', '/records', '/mypage']
 
@@ -82,6 +83,7 @@ function AppContent() {
         <Route path="/analysis/face" element={<FaceReadingScreen />} />
         <Route path="/family-result" element={<FamilyCompatibilityResultScreen />} />
         <Route path="/mypage" element={<MyPageScreen />} />
+        <Route path="/monitor" element={<MonitorScreen />} />
         <Route path="*" element={<HomeScreen />} />
       </Routes>
       {showTabBar && <TabBar />}

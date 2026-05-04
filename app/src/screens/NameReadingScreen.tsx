@@ -193,6 +193,74 @@ export default function NameReadingScreen() {
   const [error, setError] = useState('')
   const [openGrids, setOpenGrids] = useState<Set<string>>(new Set(['won']))
 
+  /* 공유 상태 */
+  const [sharing, setSharing] = useState(false)
+
+  async function handleShare() {
+    if (!result) return
+    setSharing(true)
+    try {
+      const llm = result.llm
+      const lines: string[] = [
+        `📛 이름풀이 — ${result.full_name}(${result.full_hanja})`,
+        `✦ 총 ${result.total_strokes}획 · 점수 ${llm?.score ?? '-'}점`,
+        `✦ 음양: ${result.yin_yang?.join(' · ')} ${result.yin_yang_balanced ? '(균형)' : '(불균형)'}`,
+        '',
+        `📖 이름의 의미\n${llm?.name_reading ?? ''}`,
+        '',
+        `🔍 종합 평가\n${llm?.overall_verdict ?? ''}`,
+      ]
+      if (llm?.strengths?.length) {
+        lines.push('', '✅ 이름의 강점')
+        llm.strengths.forEach((s: string) => lines.push(`· ${s}`))
+      }
+      if (llm?.personality) lines.push('', `🌿 성격·기질\n${llm.personality}`)
+      if (llm?.career_fortune) lines.push('', `💼 직업·재물운\n${llm.career_fortune}`)
+      if (llm?.lucky_advice) lines.push('', `💡 조언\n"${llm.lucky_advice}"`)
+      lines.push('', '🔗 sajuro.ai — 사주로')
+
+      const text = lines.join('\n')
+      const title = `${result.full_name}(${result.full_hanja}) 이름풀이`
+
+      const KAKAO_KEY = import.meta.env.VITE_KAKAO_APP_KEY ?? ''
+      if (KAKAO_KEY && (window as any).Kakao) {
+        if (!(window as any).Kakao.isInitialized()) (window as any).Kakao.init(KAKAO_KEY)
+        ;(window as any).Kakao.Share.sendDefault({
+          objectType: 'text',
+          text,
+          link: { mobileWebUrl: 'https://sajuro.ai', webUrl: 'https://sajuro.ai' },
+        })
+      } else if (navigator.share) {
+        await navigator.share({ title, text })
+      } else {
+        await navigator.clipboard.writeText(text)
+        alert('클립보드에 복사되었습니다.')
+      }
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  /* 이름 추천 상태 */
+  const [recLoading, setRecLoading] = useState(false)
+  const [recResult, setRecResult] = useState<{
+    is_optimal: boolean
+    current_rank: number | null
+    current_score: number
+    total_combinations: number
+    explanation: string
+    recommendations: {
+      rank: number
+      full_name: string
+      full_hanja: string
+      given_hanja: string
+      score: number
+      chars: { hangul: string; hanja: string; strokes: number; meaning?: string }[]
+      grids: { hyeong: { number: number; name: string }; i: { number: number; name: string }; jeong: { number: number; name: string }; chong: { number: number; name: string } }
+      reason: string
+    }[]
+  } | null>(null)
+
   /* 성씨 변경 → DB 조회 */
   useEffect(() => {
     if (!surnameHangul.trim()) {
@@ -263,7 +331,7 @@ export default function NameReadingScreen() {
 
   async function handleAnalyze() {
     if (!isReady()) return
-    setLoading(true); setError(''); setResult(null)
+    setLoading(true); setError(''); setResult(null); setRecResult(null)
     try {
       const body = {
         surname_hangul: surnameHangul,
@@ -324,6 +392,31 @@ export default function NameReadingScreen() {
       setError(e.message || '분석 오류')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleRecommend() {
+    if (!isReady()) return
+    setRecLoading(true); setRecResult(null)
+    try {
+      const body = {
+        surname_hangul: surnameHangul,
+        surname_hanja: selectedSurname!.hanja,
+        surname_strokes: selectedSurname!.strokes,
+        given_chars: givenChars.map(c => ({
+          hangul: c.hangul,
+          hanja: c.selected!.hanja,
+          strokes: c.selected!.strokes,
+          meaning: c.selected!.meaning || '',
+        })),
+      }
+      const res = await fetch(`${API_BASE}/api/name/recommend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (!res.ok) throw new Error(`API 오류: ${res.status}`)
+      setRecResult(await res.json())
+    } catch (e: any) {
+      console.error('[recommend]', e)
+    } finally {
+      setRecLoading(false)
     }
   }
 
@@ -476,11 +569,13 @@ export default function NameReadingScreen() {
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}
                   >
-                    <div style={{ fontSize: 22, fontWeight: 900, color: c.selected ? N.primary : N.light }}>
-                      {c.selected ? c.selected.hanja : '?'}
+                    <div style={{ fontSize: 24, fontWeight: 900, color: c.selected ? N.primary : N.light }}>
+                      {c.selected ? c.selected.hanja : `${c.hangul} ?`}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{c.hangul} ({c.selected ? `${c.selected.strokes}획` : '미선택'})</div>
-                    {c.selected && <div style={{ fontSize: 10, color: EL_COLOR[c.selected.element] || N.soft, marginTop: 1 }}>{c.selected.element}</div>}
+                    <div style={{ fontSize: 11, color: c.selected ? N.soft : N.light, marginTop: 2 }}>
+                      {c.selected ? `${c.selected.strokes}획` : '클릭해서 한자를 선택하세요'}
+                    </div>
+                    {c.selected && <div style={{ fontSize: 11, fontWeight: 700, color: EL_COLOR[c.selected.element] || N.soft, marginTop: 1 }}>{c.selected.element}</div>}
                   </button>
                 ))}
               </div>
@@ -560,7 +655,30 @@ export default function NameReadingScreen() {
             )}
 
             {/* 종합 점수 카드 */}
-            <div style={{ margin: '0 20px 16px', padding: '20px 18px', borderRadius: 18, background: N.gradient, border: 'none' }}>
+            <div style={{ margin: '0 20px 16px', padding: '20px 18px', borderRadius: 18, background: N.gradient, border: 'none', position: 'relative' }}>
+              {/* 카카오 공유 버튼 */}
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                style={{
+                  position: 'absolute', top: 14, right: 14,
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 10px', borderRadius: 20, border: 'none',
+                  background: sharing ? 'rgba(255,255,255,0.2)' : '#FEE500',
+                  color: sharing ? 'rgba(255,255,255,0.6)' : '#3A1D1D',
+                  fontSize: 11, fontWeight: 700, cursor: sharing ? 'default' : 'pointer',
+                }}
+              >
+                {sharing ? (
+                  <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.581 1.5 4.857 3.75 6.25L4.5 21l4.875-2.438A11.6 11.6 0 0012 19c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/>
+                  </svg>
+                )}
+                공유
+              </button>
+
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
                 <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span style={{ fontSize: 26, fontWeight: 900, color: '#fff' }}>{result.llm?.score ?? '—'}</span>
@@ -640,6 +758,131 @@ export default function NameReadingScreen() {
                 </div>
               </div>
             )}
+
+            {/* ─── 이름 한자 추천 섹션 ─── */}
+            <div style={{ margin: '0 20px 24px', padding: '18px 16px', borderRadius: 16, background: 'var(--bg-surface)', border: `1.5px solid ${N.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: N.primary }}>더 좋은 이름 한자 추천</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>성씨를 제외한 이름 글자의 한자 조합 분석</div>
+                </div>
+                {!recResult && (
+                  <button
+                    onClick={handleRecommend}
+                    disabled={recLoading}
+                    style={{
+                      padding: '8px 16px', borderRadius: 10, border: 'none',
+                      background: recLoading ? 'var(--bg-surface-3)' : N.primary,
+                      color: recLoading ? 'var(--text-tertiary)' : '#fff',
+                      fontSize: 12, fontWeight: 700, cursor: recLoading ? 'default' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                    }}
+                  >
+                    {recLoading
+                      ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> 분석중</>
+                      : '추천 분석'}
+                  </button>
+                )}
+              </div>
+
+              {recLoading && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '20px 0' }}>
+                  <Loader2 size={28} style={{ animation: 'spin 1s linear infinite', color: N.soft }} />
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>한자 조합을 분석하는 중입니다…</div>
+                </div>
+              )}
+
+              {recResult && (
+                <>
+                  {/* 현재 이름 순위 배지 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, padding: '10px 14px', borderRadius: 12, background: recResult.is_optimal ? '#ECFDF5' : N.bg, border: `1px solid ${recResult.is_optimal ? '#6EE7B7' : N.border}` }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: recResult.is_optimal ? '#059669' : N.soft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 16, color: '#fff' }}>{recResult.is_optimal ? '★' : `${recResult.current_rank}위`}</span>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: recResult.is_optimal ? '#059669' : N.primary }}>
+                        {recResult.is_optimal ? '현재 이름이 최선입니다!' : `${recResult.total_combinations}가지 조합 중 ${recResult.current_rank}위`}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.5 }}>
+                        {recResult.explanation}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 추천 목록 */}
+                  {!recResult.is_optimal && recResult.recommendations.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {recResult.recommendations.map((rec, idx) => (
+                        <div key={idx} style={{ borderRadius: 12, border: `1.5px solid ${idx === 0 ? N.border : 'var(--border-1)'}`, background: idx === 0 ? N.bg : 'var(--bg-surface)', overflow: 'hidden' }}>
+                          {/* 상단: 순위 + 이름 + 점수 */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${idx === 0 ? N.border : 'var(--border-1)'}` }}>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: idx === 0 ? N.primary : 'var(--bg-surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <span style={{ fontSize: 12, fontWeight: 800, color: idx === 0 ? '#fff' : 'var(--text-tertiary)' }}>{idx + 1}</span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 16, fontWeight: 900, color: idx === 0 ? N.primary : 'var(--text-primary)' }}>
+                                {rec.full_name}
+                                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginLeft: 6 }}>({rec.full_hanja})</span>
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontSize: 18, fontWeight: 900, color: idx === 0 ? N.soft : 'var(--text-secondary)' }}>{rec.score}</div>
+                              <div style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>점수</div>
+                            </div>
+                          </div>
+                          {/* 한자별 */}
+                          <div style={{ display: 'flex', gap: 6, padding: '10px 14px', borderBottom: `1px solid ${idx === 0 ? N.border : 'var(--border-1)'}` }}>
+                            {rec.chars.map((c, ci) => {
+                              const el = ['목','화','토','금','수'][([1,2,3,4,5,6,7,8,9,0].indexOf(c.strokes % 10) >> 1)]
+                              return (
+                                <div key={ci} style={{ flex: 1, textAlign: 'center', padding: '8px 4px', borderRadius: 8, background: 'var(--bg-surface)', border: '1px solid var(--border-1)' }}>
+                                  <div style={{ fontSize: 20, fontWeight: 900, color: EL_COLOR[['목','목','화','화','토','토','금','금','수','수'][c.strokes % 10]] || N.soft }}>{c.hanja}</div>
+                                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>{c.hangul} · {c.strokes}획</div>
+                                  {c.meaning && <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 1 }}>{c.meaning}</div>}
+                                </div>
+                              )
+                            })}
+                          </div>
+                          {/* 오격 수리 */}
+                          <div style={{ display: 'flex', gap: 4, padding: '8px 14px', flexWrap: 'wrap', borderBottom: `1px solid ${idx === 0 ? N.border : 'var(--border-1)'}` }}>
+                            {[
+                              { label: '형격', g: rec.grids.hyeong },
+                              { label: '이격', g: rec.grids.i },
+                              { label: '정격', g: rec.grids.jeong },
+                              { label: '총격', g: rec.grids.chong },
+                            ].map(({ label, g }) => (
+                              <span key={label} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, background: N.bgMid, color: N.primary, fontWeight: 600, border: `1px solid ${N.border}` }}>
+                                {label} {g.number} · {g.name}
+                              </span>
+                            ))}
+                          </div>
+                          {/* 추천 이유 */}
+                          {rec.reason && (
+                            <div style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                              {rec.reason}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 재분석 버튼 */}
+                  <button
+                    onClick={() => setRecResult(null)}
+                    style={{ marginTop: 14, width: '100%', padding: '10px', borderRadius: 10, border: `1px solid ${N.border}`, background: 'transparent', color: N.soft, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    다시 분석
+                  </button>
+                </>
+              )}
+
+              {!recResult && !recLoading && (
+                <div style={{ textAlign: 'center', padding: '12px 0 4px', fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.7 }}>
+                  "추천 분석" 버튼을 누르면 성씨를 제외한 이름 글자의 다른 한자 조합들을 분석하여 더 좋은 이름을 추천해 드립니다.
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>

@@ -1388,7 +1388,7 @@ async def analyze_name(req: NameAnalyzeRequest):
 
 위 이름을 성명학적으로 종합 평가하고 다음 JSON 형식으로 출력하세요:
 {{
-  "name_reading": "각 한자의 뜻을 결합하여 이름 전체가 담고 있는 의미와 부모가 담은 바람 2~3문장 (구체적이고 시적으로)",
+  "name_reading": "각 한자의 뜻을 결합하여 이름이 지닌 기운과 상징적 의미를 2~3문장으로 서술하세요. [절대금지] 부모·부모님·자녀·아이·염원·바람·기도·소망·성장하길 등 제3자(부모)의 시각·감정·희망이 담긴 표현은 단 한 글자도 사용하지 마세요. 오직 이름 자체의 오행 기운, 한자의 상징, 이름이 품은 덕목만 서술하세요.",
   "char_interpretations": [
     {{"hanja": "한자1", "reading": "음", "meaning": "뜻", "symbolism": "이 글자가 이름에 담은 상징 1문장"}},
     {{"hanja": "한자2", "reading": "음", "meaning": "뜻", "symbolism": "이 글자가 이름에 담은 상징 1문장"}}
@@ -1404,6 +1404,14 @@ async def analyze_name(req: NameAnalyzeRequest):
 
         raw = await generate_dream_json(system, user_prompt)
         llm_result = _parse_llm_json(raw)
+
+        # name_reading에서 부모 관련 문장 강제 제거
+        if isinstance(llm_result.get('name_reading'), str):
+            import re
+            sentences = re.split(r'(?<=[.!?。])\s*', llm_result['name_reading'])
+            bad_words = ['부모', '부모님', '자녀', '아이', '염원', '바람이 담', '소망', '기도', '성장하길', '바랍니다']
+            clean = [s for s in sentences if s and not any(w in s for w in bad_words)]
+            llm_result['name_reading'] = ' '.join(clean).strip()
 
         return {
             'full_name': full_name,
@@ -1428,6 +1436,167 @@ async def analyze_name(req: NameAnalyzeRequest):
     except Exception as e:
         print(f"[name/analyze] 오류: {e}")
         raise HTTPException(status_code=500, detail=f"이름풀이 오류: {str(e)}")
+
+
+@app.post("/api/name/recommend")
+async def recommend_name(req: NameAnalyzeRequest):
+    """성씨를 제외한 이름 글자를 다른 한자로 바꿨을 때 더 좋은 조합 추천"""
+    try:
+        import itertools
+        sb = _get_sb()
+
+        # 81수리 전체 데이터 캐시
+        fortune_rows = sb.table("name_fortune_81").select("*").execute()
+        fortune_map = {r['number']: r for r in (fortune_rows.data or [])}
+
+        def grid_score(ss: int, g1: int, g2: int = 0) -> float:
+            grids = _calc_five_grids(ss, g1, g2)
+            nums = [grids['hyeong'], grids['i'], grids['jeong'], grids['chong']]
+            total = sum(fortune_map.get(n, {}).get('luck_score', 50) for n in nums)
+            return total / len(nums)
+
+        ss = req.surname_strokes
+        g_strokes = [c['strokes'] for c in req.given_chars]
+        g1_cur = g_strokes[0] if g_strokes else 0
+        g2_cur = g_strokes[1] if len(g_strokes) > 1 else 0
+        current_score = grid_score(ss, g1_cur, g2_cur)
+
+        # 각 음절에 대한 한자 후보 목록 조회
+        candidates_per_char = []
+        for char_info in req.given_chars:
+            result = (
+                sb.table("hanja_names")
+                .select("id, hangul, hanja, strokes, meaning")
+                .eq("hangul", char_info['hangul'])
+                .order("display_order")
+                .limit(30)
+                .execute()
+            )
+            candidates = result.data or []
+            # 현재 선택한 한자가 없으면 앞에 추가
+            if not any(c['hanja'] == char_info['hanja'] for c in candidates):
+                candidates.insert(0, {
+                    'hangul': char_info['hangul'],
+                    'hanja': char_info['hanja'],
+                    'strokes': char_info['strokes'],
+                    'meaning': char_info.get('meaning', ''),
+                })
+            candidates_per_char.append(candidates)
+
+        # 조합 생성 (최대 200개)
+        all_combos = list(itertools.product(*candidates_per_char))[:200]
+
+        # 점수 계산
+        scored = []
+        for combo in all_combos:
+            strokes = [c['strokes'] for c in combo]
+            g1 = strokes[0] if strokes else 0
+            g2 = strokes[1] if len(strokes) > 1 else 0
+            sc = grid_score(ss, g1, g2)
+            is_current = all(combo[i]['hanja'] == req.given_chars[i]['hanja'] for i in range(len(combo)))
+            scored.append({'chars': list(combo), 'score': sc, 'is_current': is_current})
+
+        scored.sort(key=lambda x: x['score'], reverse=True)
+
+        current_rank = next((i + 1 for i, c in enumerate(scored) if c['is_current']), None)
+        total = len(scored)
+        is_optimal = current_rank == 1
+
+        # 현재 이름 한자 정보
+        full_hanja_current = req.surname_hanja + ''.join(c['hanja'] for c in req.given_chars)
+
+        # 상위 추천 (현재 이름 제외, 최대 5개)
+        top_recs = [s for s in scored if not s['is_current']][:5]
+
+        # 추천 텍스트 생성을 위한 요약
+        def combo_summary(entry):
+            chars = entry['chars']
+            hanja_str = ''.join(c['hanja'] for c in chars)
+            hangul_str = ''.join(c['hangul'] for c in chars)
+            grids = _calc_five_grids(ss, chars[0]['strokes'], chars[1]['strokes'] if len(chars) > 1 else 0)
+            grid_details = ', '.join([
+                f"형격{grids['hyeong']}({fortune_map.get(grids['hyeong'],{}).get('name','')})",
+                f"이격{grids['i']}({fortune_map.get(grids['i'],{}).get('name','')})",
+                f"정격{grids['jeong']}({fortune_map.get(grids['jeong'],{}).get('name','')})",
+                f"총격{grids['chong']}({fortune_map.get(grids['chong'],{}).get('name','')})",
+            ])
+            return f"{req.surname_hangul}{hangul_str}({req.surname_hanja}{hanja_str}) 평균점수:{entry['score']:.1f} [{grid_details}]"
+
+        current_summary = combo_summary({'chars': req.given_chars, 'score': current_score, 'is_current': True})
+        top_summaries = '\n'.join([f"{i+1}. {combo_summary(r)}" for i, r in enumerate(top_recs)])
+
+        if is_optimal:
+            system = "당신은 성명학 전문가입니다. 이름의 한자 선택이 최선임을 확인하고 그 이유를 설명합니다. 반드시 JSON만 출력하세요."
+            user_prompt = f"""현재 이름: {current_summary}
+이 이름은 분석한 {total}가지 한자 조합 중 최고 점수입니다.
+
+왜 이 한자 조합이 최선인지 성명학적으로 설명하고 아래 JSON 형식으로 출력하세요:
+{{
+  "is_optimal": true,
+  "explanation": "현재 이름이 최선인 이유 2~3문장 (오격 수리, 음양, 오행 관점에서 구체적으로)",
+  "recommendations": []
+}}"""
+        else:
+            system = "당신은 성명학 전문가입니다. 더 좋은 한자 조합을 추천하고 이유를 설명합니다. 반드시 JSON만 출력하세요."
+            user_prompt = f"""현재 이름: {current_summary} (전체 {total}개 조합 중 {current_rank}위)
+
+더 좋은 한자 조합 추천:
+{top_summaries}
+
+각 추천 이름이 왜 더 좋은지 성명학적으로 설명하고 아래 JSON 형식으로 출력하세요:
+{{
+  "is_optimal": false,
+  "explanation": "현재 이름의 한계 1~2문장",
+  "recommendations": [
+    {{
+      "rank": 1,
+      "full_name": "성+이름 한글",
+      "full_hanja": "성+이름 한자",
+      "score": 숫자,
+      "reason": "이 조합이 더 좋은 이유 1~2문장 (오격 개선 포인트 포함)"
+    }}
+  ]
+}}"""
+
+        raw = await generate_dream_json(system, user_prompt)
+        llm_result = _parse_llm_json(raw)
+
+        # LLM 결과에 수리 데이터 보강
+        recs_with_data = []
+        for i, rec_entry in enumerate(top_recs[:5]):
+            chars = rec_entry['chars']
+            grids = _calc_five_grids(ss, chars[0]['strokes'], chars[1]['strokes'] if len(chars) > 1 else 0)
+            llm_rec = (llm_result.get('recommendations') or [{}])[i] if not is_optimal else {}
+            recs_with_data.append({
+                'rank': i + 1,
+                'full_name': req.surname_hangul + ''.join(c['hangul'] for c in chars),
+                'full_hanja': req.surname_hanja + ''.join(c['hanja'] for c in chars),
+                'given_hanja': ''.join(c['hanja'] for c in chars),
+                'score': round(rec_entry['score'], 1),
+                'chars': chars,
+                'grids': {
+                    'hyeong': {'number': grids['hyeong'], 'name': fortune_map.get(grids['hyeong'], {}).get('name', '')},
+                    'i':      {'number': grids['i'],      'name': fortune_map.get(grids['i'],      {}).get('name', '')},
+                    'jeong':  {'number': grids['jeong'],  'name': fortune_map.get(grids['jeong'],  {}).get('name', '')},
+                    'chong':  {'number': grids['chong'],  'name': fortune_map.get(grids['chong'],  {}).get('name', '')},
+                },
+                'reason': llm_rec.get('reason', ''),
+            })
+
+        return {
+            'is_optimal': is_optimal,
+            'current_rank': current_rank,
+            'current_score': round(current_score, 1),
+            'total_combinations': total,
+            'explanation': llm_result.get('explanation', ''),
+            'recommendations': recs_with_data,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[name/recommend] 오류: {e}")
+        raise HTTPException(status_code=500, detail=f"추천 분석 오류: {str(e)}")
 
 
 # ──────────────────────────────────────────────
@@ -3096,6 +3265,102 @@ async def face_qa(req: FaceQARequest):
     except Exception as e:
         print(f"[face/qa] 오류: {e}")
         raise HTTPException(status_code=500, detail=f"Q&A 오류: {str(e)}")
+
+
+@app.get("/api/monitor/stats")
+async def monitor_stats():
+    """관리자 모니터링 통계"""
+    try:
+        sb = _get_sb()
+        from datetime import datetime, timezone, timedelta
+
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        week_start  = (now - timedelta(days=7)).isoformat()
+
+        # ── 명식(사주) 통계 ──
+        total_profiles = sb.table("profiles").select("id", count="exact").execute()
+        today_profiles = sb.table("profiles").select("id", count="exact").gte("created_at", today_start).execute()
+        week_profiles  = sb.table("profiles").select("id", count="exact").gte("created_at", week_start).execute()
+
+        # ── 고유 사용자 통계 (device_id / user_id 기준) ──
+        dev_rows  = sb.table("profiles").select("device_id").execute()
+        user_rows = sb.table("profiles").select("user_id").execute()
+        unique_devices = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id")))
+        unique_users   = len(set(r["user_id"]   for r in (user_rows.data or []) if r.get("user_id")))
+
+        # ── 분석 통계 ──
+        total_analyses = sb.table("precision_analyses").select("id", count="exact").execute()
+        today_analyses = sb.table("precision_analyses").select("id", count="exact").gte("created_at", today_start).execute()
+        week_analyses  = sb.table("precision_analyses").select("id", count="exact").gte("created_at", week_start).execute()
+
+        # ── 분석 타입별 집계 ──
+        type_rows = sb.table("precision_analyses").select("selected_items, created_at").order("created_at", desc=True).limit(2000).execute()
+        type_count: dict = {}
+        daily_map: dict = {}
+        for row in (type_rows.data or []):
+            try:
+                items = json.loads(row.get("selected_items") or "[]")
+            except Exception:
+                items = []
+            for item in items:
+                type_count[item] = type_count.get(item, 0) + 1
+            # 일별 집계 (최근 14일)
+            ts = row.get("created_at", "")[:10]
+            daily_map[ts] = daily_map.get(ts, 0) + 1
+
+        # 최근 14일 날짜 목록
+        daily_labels = [(now - timedelta(days=i)).strftime("%m/%d") for i in range(13, -1, -1)]
+        daily_keys   = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
+        daily_values = [daily_map.get(k, 0) for k in daily_keys]
+
+        # ── 최근 활동 (최신 20건) ──
+        recent_rows = sb.table("precision_analyses").select("id, profile_name, selected_items, created_at").order("created_at", desc=True).limit(20).execute()
+        recent = []
+        for r in (recent_rows.data or []):
+            try:
+                items = json.loads(r.get("selected_items") or "[]")
+            except Exception:
+                items = []
+            recent.append({
+                "id": r.get("id"),
+                "profile_name": r.get("profile_name", ""),
+                "types": items,
+                "created_at": r.get("created_at", ""),
+            })
+
+        # ── 프로필 그룹 통계 ──
+        group_rows = sb.table("profiles").select("group_name").execute()
+        group_count: dict = {}
+        for row in (group_rows.data or []):
+            g = row.get("group_name") or "미분류"
+            group_count[g] = group_count.get(g, 0) + 1
+
+        return {
+            "generated_at": now.isoformat(),
+            "profiles": {
+                "total": total_profiles.count or 0,
+                "today": today_profiles.count or 0,
+                "week":  week_profiles.count or 0,
+                "unique_devices": unique_devices,
+                "unique_users":   unique_users,
+                "by_group": group_count,
+            },
+            "analyses": {
+                "total": total_analyses.count or 0,
+                "today": today_analyses.count or 0,
+                "week":  week_analyses.count or 0,
+                "by_type": type_count,
+            },
+            "daily_chart": {
+                "labels": daily_labels,
+                "values": daily_values,
+            },
+            "recent_activity": recent,
+        }
+    except Exception as e:
+        print(f"[monitor/stats] 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
