@@ -28,13 +28,53 @@ const TYPE_COLOR: Record<string, string> = {
 interface Stats {
   generated_at: string
   profiles: {
-    total: number; today: number; week: number
-    unique_devices: number; unique_users: number
+    total: number; today: number; yesterday: number; week: number
+    unique_devices: number; unique_users: number; week_unique_devices: number
     by_group: Record<string, number>
   }
-  analyses: { total: number; today: number; week: number; by_type: Record<string, number> }
+  analyses: { total: number; today: number; yesterday: number; week: number; by_type: Record<string, number> }
   daily_chart: { labels: string[]; values: number[] }
   recent_activity: { id: string; profile_name: string; types: string[]; created_at: string }[]
+}
+
+/* 기간별 섹션 헤더 */
+function PeriodSection({ title, badge, badgeColor, children }: {
+  title: string; badge?: string; badgeColor?: string; children: React.ReactNode
+}) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, paddingLeft: 2 }}>
+        <div style={{ width: 3, height: 16, borderRadius: 2, background: badgeColor || '#6366F1' }} />
+        <span style={{ fontSize: 13, fontWeight: 800, color: '#1E293B' }}>{title}</span>
+        {badge && (
+          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: `${badgeColor || '#6366F1'}15`, color: badgeColor || '#6366F1' }}>
+            {badge}
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>{children}</div>
+    </div>
+  )
+}
+
+/* 작은 수치 카드 */
+function MiniStatCard({ icon, label, value, color }: {
+  icon: React.ReactNode; label: string; value: number | string; color: string
+}) {
+  return (
+    <div style={{
+      flex: 1, padding: '12px 10px', borderRadius: 12, textAlign: 'center',
+      background: '#fff', border: `1.5px solid ${color}25`,
+    }}>
+      <div style={{ width: 28, height: 28, borderRadius: 8, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color, margin: '0 auto 6px' }}>
+        {icon}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', lineHeight: 1 }}>
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </div>
+      <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 4, lineHeight: 1.3 }}>{label}</div>
+    </div>
+  )
 }
 
 function StatCard({ icon, label, value, sub, period, color }: {
@@ -203,13 +243,31 @@ export default function MonitorScreen() {
           </div>
         )}
 
-        {/* 핵심 지표 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-          <StatCard icon={<Users size={16} />}      label="순방문자" value={stats?.profiles.unique_devices ?? '—'} period="누적 전체" sub={`카카오 로그인 ${stats?.profiles.unique_users ?? 0}명`} color="#6366F1" />
-          <StatCard icon={<TrendingUp size={16} />} label="등록 명식" value={stats?.profiles.total ?? '—'} period="누적 전체" sub={`이번주 +${stats?.profiles.week ?? 0}건 · 오늘 +${stats?.profiles.today ?? 0}건`} color="#10B981" />
-          <StatCard icon={<BarChart2 size={16} />}  label="전체 분석" value={stats?.analyses.total ?? '—'} period="누적 전체" sub={`이번주 +${stats?.analyses.week ?? 0}건 · 오늘 +${stats?.analyses.today ?? 0}건`} color="#0EA5E9" />
-          <StatCard icon={<Activity size={16} />}   label="오늘 분석" value={stats?.analyses.today ?? '—'} period={`오늘 (${new Date().toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })})`} sub={`이번주 누적 ${stats?.analyses.week ?? 0}건`} color="#F59E0B" />
-        </div>
+        {/* 전체 현황 */}
+        <PeriodSection title="전체 현황" badge="누적 전체" badgeColor="#6366F1">
+          <MiniStatCard icon={<Users size={14} />}      label="순방문자" value={stats?.profiles.unique_devices ?? '—'} color="#6366F1" />
+          <MiniStatCard icon={<TrendingUp size={14} />} label="등록 명식" value={stats?.profiles.total ?? '—'} color="#10B981" />
+          <MiniStatCard icon={<BarChart2 size={14} />}  label="분석 건수" value={stats?.analyses.total ?? '—'} color="#0EA5E9" />
+        </PeriodSection>
+
+        {/* 이번주 현황 */}
+        <PeriodSection title="이번주 현황" badge="최근 7일" badgeColor="#8B5CF6">
+          <MiniStatCard icon={<Users size={14} />}      label="신규 방문" value={stats?.profiles.week_unique_devices ?? '—'} color="#8B5CF6" />
+          <MiniStatCard icon={<TrendingUp size={14} />} label="등록 명식" value={stats?.profiles.week ?? '—'} color="#8B5CF6" />
+          <MiniStatCard icon={<BarChart2 size={14} />}  label="분석 건수" value={stats?.analyses.week ?? '—'} color="#8B5CF6" />
+        </PeriodSection>
+
+        {/* 어제 현황 */}
+        <PeriodSection title="어제 현황" badge={new Date(Date.now() - 86400000).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} badgeColor="#F59E0B">
+          <MiniStatCard icon={<TrendingUp size={14} />} label="등록 명식" value={stats?.profiles.yesterday ?? '—'} color="#F59E0B" />
+          <MiniStatCard icon={<BarChart2 size={14} />}  label="분석 건수" value={stats?.analyses.yesterday ?? '—'} color="#F59E0B" />
+        </PeriodSection>
+
+        {/* 오늘 현황 */}
+        <PeriodSection title="오늘 현황" badge={new Date().toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} badgeColor="#10B981">
+          <MiniStatCard icon={<TrendingUp size={14} />} label="등록 명식" value={stats?.profiles.today ?? '—'} color="#10B981" />
+          <MiniStatCard icon={<BarChart2 size={14} />}  label="분석 건수" value={stats?.analyses.today ?? '—'} color="#10B981" />
+        </PeriodSection>
 
         {/* 일별 분석 추이 */}
         <div style={{ background: '#fff', borderRadius: 14, padding: '16px', marginBottom: 16, border: '1px solid #E2E8F0' }}>

@@ -3275,24 +3275,28 @@ async def monitor_stats():
         from datetime import datetime, timezone, timedelta
 
         now = datetime.now(timezone.utc)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-        week_start  = (now - timedelta(days=7)).isoformat()
+        today_start     = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        yesterday_start = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        week_start      = (now - timedelta(days=7)).isoformat()
 
         # ── 명식(사주) 통계 ──
-        total_profiles = sb.table("profiles").select("id", count="exact").execute()
-        today_profiles = sb.table("profiles").select("id", count="exact").gte("created_at", today_start).execute()
-        week_profiles  = sb.table("profiles").select("id", count="exact").gte("created_at", week_start).execute()
+        total_profiles     = sb.table("profiles").select("id", count="exact").execute()
+        today_profiles     = sb.table("profiles").select("id", count="exact").gte("created_at", today_start).execute()
+        yesterday_profiles = sb.table("profiles").select("id", count="exact").gte("created_at", yesterday_start).lt("created_at", today_start).execute()
+        week_profiles      = sb.table("profiles").select("id", count="exact").gte("created_at", week_start).execute()
 
         # ── 고유 사용자 통계 (device_id / user_id 기준) ──
-        dev_rows  = sb.table("profiles").select("device_id").execute()
-        user_rows = sb.table("profiles").select("user_id").execute()
-        unique_devices = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id")))
-        unique_users   = len(set(r["user_id"]   for r in (user_rows.data or []) if r.get("user_id")))
+        dev_rows       = sb.table("profiles").select("device_id, created_at").execute()
+        user_rows      = sb.table("profiles").select("user_id").execute()
+        unique_devices      = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id")))
+        unique_users        = len(set(r["user_id"]   for r in (user_rows.data or []) if r.get("user_id")))
+        week_devices        = len(set(r["device_id"] for r in (dev_rows.data or []) if r.get("device_id") and r.get("created_at","") >= week_start))
 
         # ── 분석 통계 ──
-        total_analyses = sb.table("precision_analyses").select("id", count="exact").execute()
-        today_analyses = sb.table("precision_analyses").select("id", count="exact").gte("created_at", today_start).execute()
-        week_analyses  = sb.table("precision_analyses").select("id", count="exact").gte("created_at", week_start).execute()
+        total_analyses     = sb.table("precision_analyses").select("id", count="exact").execute()
+        today_analyses     = sb.table("precision_analyses").select("id", count="exact").gte("created_at", today_start).execute()
+        yesterday_analyses = sb.table("precision_analyses").select("id", count="exact").gte("created_at", yesterday_start).lt("created_at", today_start).execute()
+        week_analyses      = sb.table("precision_analyses").select("id", count="exact").gte("created_at", week_start).execute()
 
         # ── 분석 타입별 집계 ──
         type_rows = sb.table("precision_analyses").select("selected_items, created_at").order("created_at", desc=True).limit(2000).execute()
@@ -3339,17 +3343,20 @@ async def monitor_stats():
         return {
             "generated_at": now.isoformat(),
             "profiles": {
-                "total": total_profiles.count or 0,
-                "today": today_profiles.count or 0,
-                "week":  week_profiles.count or 0,
-                "unique_devices": unique_devices,
-                "unique_users":   unique_users,
+                "total":     total_profiles.count or 0,
+                "today":     today_profiles.count or 0,
+                "yesterday": yesterday_profiles.count or 0,
+                "week":      week_profiles.count or 0,
+                "unique_devices":      unique_devices,
+                "unique_users":        unique_users,
+                "week_unique_devices": week_devices,
                 "by_group": group_count,
             },
             "analyses": {
-                "total": total_analyses.count or 0,
-                "today": today_analyses.count or 0,
-                "week":  week_analyses.count or 0,
+                "total":     total_analyses.count or 0,
+                "today":     today_analyses.count or 0,
+                "yesterday": yesterday_analyses.count or 0,
+                "week":      week_analyses.count or 0,
                 "by_type": type_count,
             },
             "daily_chart": {
